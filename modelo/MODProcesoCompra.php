@@ -348,6 +348,8 @@ function listarProcesoCompraPedido(){
 		//Definicion de la lista del resultado del query
 		$this->captura('num_tramite','varchar');
 		$this->captura('justificacion','text');
+		$this->captura('solicitante','text');
+		$this->captura('tecnico_adquisiciones','text');
 		$this->captura('proveedor_recomendado','varchar');
 		$this->captura('proveedor_adjudicado','text');
 		$this->captura('fecha_ini_proc','date');
@@ -382,6 +384,69 @@ function listarProcesoCompraPedido(){
 		//Ejecuta la instruccion
 		$this->armarConsulta();
 		$this->ejecutarConsulta();
+		//Devuelve la respuesta
+		return $this->respuesta;
+	}
+
+	function listarForm400(){
+		//Definicion de variables para ejecucion del procedimiento
+		$this->procedimiento='adq.f_proceso_compra_sel';
+		$this->transaccion='ADQ_FORM_400_SEL';
+		$this->tipo_procedimiento='SEL';
+
+		//Define los parametros para la funcion
+
+		$this->captura('id_cotizacion', 'int4');
+		$this->captura('id_proceso_wf', 'int4');
+		$this->captura('id_estado_wf', 'int4');
+		$this->captura('estado', 'varchar');
+
+		$this->captura('num_tramite', 'varchar');
+		$this->captura('fun_solicitante', 'varchar');
+		$this->captura('fun_resp', 'varchar');
+		$this->captura('tieneform400', 'varchar');
+		
+		$this->captura('dias_form_400', 'integer');
+		$this->captura('fecha_inicio', 'date');
+		$this->captura('fecha_fin', 'date');
+
+		//Ejecuta la instruccion
+		$this->armarConsulta();
+		//var_dump($this->consulta);exit;
+		$this->ejecutarConsulta();
+
+		//Devuelve la respuesta
+		return $this->respuesta;
+	}
+
+	function listarForm500(){
+		//Definicion de variables para ejecucion del procedimiento
+		$this->procedimiento='adq.f_proceso_compra_sel';
+		$this->transaccion='ADQ_FORM_500_SEL';
+		$this->tipo_procedimiento='SEL';
+
+		//Define los parametros para la funcion
+        $this->captura('id_cotizacion', 'int4');
+        $this->captura('id_proceso_wf', 'int4');
+        $this->captura('id_estado_wf', 'int4');
+        $this->captura('estado', 'varchar');
+
+		$this->captura('num_tramite', 'varchar');
+		$this->captura('fun_solicitante', 'varchar');
+		$this->captura('fun_resp', 'varchar');
+		$this->captura('tieneform500', 'varchar');
+		$this->captura('conformidad', 'varchar');
+		$this->captura('nro_cuota', 'numeric');
+        $this->captura('dias_form_500', 'integer');
+        $this->captura('fecha_inicio', 'date');
+        $this->captura('fecha_fin', 'date');
+        $this->captura('fecha_conformidad', 'date');
+
+		//Ejecuta la instruccion
+		$this->armarConsulta();
+		//var_dump($this->consulta);exit;
+		$this->ejecutarConsulta();
+
 		//Devuelve la respuesta
 		return $this->respuesta;
 	}
