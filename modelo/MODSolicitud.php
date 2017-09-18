@@ -91,9 +91,13 @@ class MODSolicitud extends MODbase{
 
 		$this->captura('nro_po','varchar');
 		$this->captura('fecha_po','date');
+		$this->captura('nro_cuotas','int4');
+		$this->captura('fecha_ini_cot','date');
+		$this->captura('fecha_ven_cot','date');
+		$this->captura('proveedor_unico','boolean');
+        $this->captura('fecha_fin','date');
+        $this->captura('correo_proveedor','varchar');
 
-		
-		
 		  
 		
 		//Ejecuta la instruccion
@@ -113,7 +117,7 @@ class MODSolicitud extends MODbase{
 		$this->procedimiento='adq.f_solicitud_ime';
 		$this->transaccion='ADQ_SOL_INS';
 		$this->tipo_procedimiento='IME';
-				
+
 		//Define los parametros para la funcion
 		$this->setParametro('estado_reg','estado_reg','varchar');
 		$this->setParametro('id_solicitud_ext','id_solicitud_ext','int4');
@@ -149,8 +153,11 @@ class MODSolicitud extends MODbase{
 		$this->setParametro('obs_poa','obs_poa','varchar');
 
 
+        $this->setParametro('fecha_fin','fecha_fin','date');
 		$this->setParametro('nro_po','nro_po','varchar');
 		$this->setParametro('fecha_po','fecha_po','varchar');
+		$this->setParametro('nro_cuotas','nro_cuotas','int4');
+
 
 		//Ejecuta la instruccion
 		$this->armarConsulta();
@@ -165,7 +172,7 @@ class MODSolicitud extends MODbase{
 		$this->procedimiento='adq.f_solicitud_ime';
 		$this->transaccion='ADQ_SOL_MOD';
 		$this->tipo_procedimiento='IME';
-				
+
 		//Define los parametros para la funcion
 		$this->setParametro('id_solicitud','id_solicitud','int4');
 		$this->setParametro('estado_reg','estado_reg','varchar');
@@ -199,9 +206,15 @@ class MODSolicitud extends MODbase{
 		$this->setParametro('dias_plazo_entrega','dias_plazo_entrega','integer');
 		$this->setParametro('precontrato','precontrato','varchar');
 
+
+		$this->setParametro('correo_proveedor','correo_proveedor','varchar');
 		$this->setParametro('nro_po','nro_po','varchar');
 		$this->setParametro('fecha_po','fecha_po','date');
-
+		$this->setParametro('fecha_fin','fecha_fin','date');
+		$this->setParametro('proveedor_unico','proveedor_unico','boolean');
+		$this->setParametro('nro_cuotas','nro_cuotas','int4');
+		$this->setParametro('fecha_ini_cot','fecha_ini_cot','date');
+		$this->setParametro('fecha_ven_cot','fecha_ven_cot','date');
 		
 		//Ejecuta la instruccion
 		$this->armarConsulta();
@@ -598,8 +611,15 @@ class MODSolicitud extends MODbase{
 			$this->setParametro('precontrato','precontrato','varchar');
 			$this->setParametro('correo_proveedor','correo_proveedor','varchar');
 
+
+
 			$this->setParametro('nro_po','nro_po','varchar');
 			$this->setParametro('fecha_po','fecha_po','date');
+			$this->setParametro('fecha_fin','fecha_fin','date');
+			$this->setParametro('proveedor_unico','proveedor_unico','boolean');
+			$this->setParametro('nro_cuotas','nro_cuotas','int4');
+			$this->setParametro('fecha_ini_cot','fecha_ini_cot','date');
+			$this->setParametro('fecha_ven_cot','fecha_ven_cot','date');
 
 			//Ejecuta la instruccion
             $this->armarConsulta();
@@ -791,6 +811,161 @@ class MODSolicitud extends MODbase{
 		return $this->respuesta;
 	}
 
-			
+	function verificarInformacionSec(){
+		//Definicion de variables para ejecucion del procedimientp
+		$this->procedimiento='adq.f_solicitud_ime';
+		$this->transaccion='ADQ_INFSEC_GET';
+		$this->tipo_procedimiento='IME';//tipo de transaccion
+		$this->setCount(false);
+
+		$this->setParametro('id_solicitud','id_solicitud','int4');
+
+
+		$this->captura('v_id_informacion_sec','int4');
+		$this->captura('v_id_solicitud','int4');
+		$this->captura('v_antecedentes','text');
+		$this->captura('v_necesidad_contra','text');
+		$this->captura('v_beneficios_contra','text');
+		$this->captura('v_resultados','text');
+		$this->captura('v_conclusiones_r','text');
+		$this->captura('v_validez_oferta','text');
+		$this->captura('v_garantias','text');
+		$this->captura('v_multas','text');
+		$this->captura('v_forma_pago','text');
+
+		$this->captura('v_valid','varchar');
+
+
+
+		//Ejecuta la instruccion
+		$this->armarConsulta();
+		$this->ejecutarConsulta();
+		//Devuelve la respuesta
+		return $this->respuesta;
+	}
+
+	function reporteInformeInterPDF(){
+		//Definicion de variables para ejecucion del procedimientp
+		$this->procedimiento='adq.f_solicitud_sel';
+		$this->transaccion='ADQ_RINFINT_SEL';
+		$this->tipo_procedimiento='SEL';//tipo de transaccion
+		$this->setCount(false);
+
+		$this->setParametro('id_proceso_wf','id_proceso_wf','int4');
+
+
+		$this->captura('p_nro_cite','varchar');
+		$this->captura('p_nombre_jefe','text');
+		$this->captura('p_cargo_jefe','varchar');
+		$this->captura('p_nombre_sol','text');
+		$this->captura('p_cargo_sol','varchar');
+		$this->captura('antecendentes','text');
+		$this->captura('necesidad_contra','text');
+		$this->captura('beneficios_contra','text');
+		$this->captura('resultados','text');
+		$this->captura('conclusiones_r','text');
+
+		//Ejecuta la instruccion
+		$this->armarConsulta();
+		//var_dump($this->consulta);exit;
+		$this->ejecutarConsulta();
+		//Devuelve la respuesta
+		return $this->respuesta;
+	}
+
+	function reporteEspecificacionTecInterPDF(){
+		//Definicion de variables para ejecucion del procedimientp
+		$this->procedimiento='adq.f_solicitud_sel';
+		$this->transaccion='ADQ_RESPTEC_SEL';
+		$this->tipo_procedimiento='SEL';//tipo de transaccion
+		$this->setCount(false);
+
+		$this->setParametro('id_proceso_wf','id_proceso_wf','int4');
+
+
+		$this->captura('justificacion','text');
+		$this->captura('desc_ingas','varchar');
+		$this->captura('descripcion','text');
+		$this->captura('precio_unitario','numeric');
+		$this->captura('cantidad','integer');
+		$this->captura('validez_oferta','text');
+		$this->captura('garantias','text');
+		$this->captura('lugar_entrega','varchar');
+		$this->captura('dias_plazo_entrega','integer');
+		$this->captura('multas','text');
+		$this->captura('forma_pago','text');
+		$this->captura('p_nombre_jefe','text');
+		$this->captura('p_cargo_jefe','varchar');
+		$this->captura('p_nombre_sol','text');
+		$this->captura('p_cargo_sol','varchar');
+
+		//Ejecuta la instruccion
+		$this->armarConsulta();
+		//var_dump($this->consulta);exit;
+		$this->ejecutarConsulta();
+		//Devuelve la respuesta
+		return $this->respuesta;
+	}
+	
+	function listarObservaciones(){
+		//Definicion de variables para ejecucion del procedimientp
+		$this->procedimiento='adq.f_solicitud_sel';
+		$this->transaccion='ADQ_SOLOBS_SEL';
+		$this->tipo_procedimiento='SEL';//tipo de transaccion
+		$this->setCount(false);
+
+
+		//Definicion de la lista del resultado del query
+		$this->captura('id_obs','int4');
+		$this->captura('fecha_fin','timestamp');
+		$this->captura('estado_reg','varchar');
+		$this->captura('estado','varchar');
+		$this->captura('descripcion','varchar');
+		$this->captura('id_funcionario_resp','int4');
+		$this->captura('titulo','varchar');
+		$this->captura('desc_fin','varchar');
+		$this->captura('usuario_ai','varchar');
+		$this->captura('fecha_reg','timestamp');
+		$this->captura('id_usuario_reg','int4');
+		$this->captura('id_usuario_ai','int4');
+		$this->captura('id_usuario_mod','int4');
+		$this->captura('fecha_mod','timestamp');
+		$this->captura('usr_reg','varchar');
+		$this->captura('usr_mod','varchar');
+		$this->captura('codigo_tipo_estado','varchar');
+		$this->captura('nombre_tipo_estado','varchar');
+		$this->captura('nombre_tipo_proceso','varchar');
+		$this->captura('nro_tramite','varchar');
+		$this->captura('id_estado_wf','int4');
+		$this->captura('id_proceso_wf','int4');
+		$this->captura('desc_funcionario','text');
+		$this->captura('email_empresa','varchar');
+		$this->captura('desc_fun_obs','text');
+
+		//Ejecuta la instruccion
+		$this->armarConsulta();
+		//var_dump($this->consulta);exit;
+		$this->ejecutarConsulta();
+		//Devuelve la respuesta
+		return $this->respuesta;	
+	}
+
+	function cerrarSolicitudObs(){
+		//Definicion de variables para ejecucion del procedimiento
+		$this->procedimiento='adq.f_solicitud_ime';
+		$this->transaccion='ADQ_CERRAROBS_MOD';
+		$this->tipo_procedimiento='IME';
+
+		//Define los parametros para la funcion
+		$this->setParametro('id_obs','id_obs','int4');
+
+		//Ejecuta la instruccion
+		$this->armarConsulta();
+		$this->ejecutarConsulta();
+
+		//Devuelve la respuesta
+		return $this->respuesta;
+	}
+
 }
 ?>

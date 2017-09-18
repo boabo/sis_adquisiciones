@@ -52,6 +52,9 @@ DECLARE
     v_nro_memo			varchar;
     v_correlativo		varchar;
 
+    --variables para observaciones ADQ_SOLOBS_SEL
+    v_lista_fun			varchar;
+
 BEGIN
 
 	v_nombre_funcion = 'adq.f_solicitud_sel';
@@ -228,8 +231,14 @@ BEGIN
                         (select count(*)
                              from unnest(id_tipo_estado_wfs) elemento
                              where elemento = ew.id_tipo_estado) as contador_estados,
-						            sol.nro_po,
-                        sol.fecha_po
+           sol.nro_po,
+                        sol.fecha_po,
+                        sol.nro_cuotas,
+                        sol.fecha_ini_cot,
+                        sol.fecha_ven_cot,
+                        sol.proveedor_unico,
+                        sol.fecha_fin,
+                        pro.email as correo_proveedor
 						from adq.tsolicitud sol
 						inner join segu.tusuario usu1 on usu1.id_usuario = sol.id_usuario_reg
                         inner join wf.tproceso_wf pwf on pwf.id_proceso_wf = sol.id_proceso_wf
@@ -726,6 +735,159 @@ BEGIN
           RAISE NOTICE 'CONSULTA: %',v_consulta;
 			    return v_consulta;
       END;
+    /*********************************
+ 	#TRANSACCION:  'ADQ_RINFINT_SEL'
+ 	#DESCRIPCION:	Datos para Reporte de Informe
+ 	#AUTOR:		FEA
+ 	#FECHA:		05-05-2017
+	***********************************/
+    elsif(p_transaccion='ADQ_RINFINT_SEL')then
+    	begin
+        SELECT ts.nro_cite_informe
+        INTO v_nro_memo
+        FROM adq.tsolicitud ts
+        WHERE ts.id_proceso_wf = v_parametros.id_proceso_wf;
+
+         if(v_nro_memo is not null)then
+           		v_correlativo = v_nro_memo;
+         else
+           		SELECT param.f_obtener_correlativo(
+                                              'MEM',
+                                               ts.id_gestion,
+                                               NULL,
+                                               ts.id_depto,
+                                               ts.id_usuario_reg,
+                                               'ADQ',
+                                               NULL)
+           		INTO v_correlativo
+        		FROM  adq.tsolicitud ts
+            	WHERE  ts.id_proceso_wf = v_parametros.id_proceso_wf;
+
+                UPDATE adq.tsolicitud SET
+                nro_cite_informe = v_correlativo
+                WHERE id_proceso_wf = v_parametros.id_proceso_wf;
+         end if;
+
+        v_consulta:='SELECT '''||v_correlativo||'''::varchar AS p_nro_cite, vfc.desc_funcionario1 AS p_nombre_jefe,
+        					vfc.descripcion_cargo AS p_cargo_jefe, vf.desc_funcionario1 AS p_nombre_sol,
+                      		vf.descripcion_cargo AS p_cargo_sol, tis.antecedentes, tis.necesidad_contra,
+                            tis.beneficios_contra, tis.resultados, tis.concluciones_r
+                      FROM adq.tsolicitud ts
+                      INNER JOIN adq.tinformacion_secundaria tis ON tis.id_solicitud = ts.id_solicitud
+                      INNER JOIN orga.vfuncionario_cargo vf ON vf.id_funcionario = ts.id_funcionario
+                      INNER JOIN orga.vfuncionario_cargo vfc ON vfc.id_funcionario = ts.id_funcionario_aprobador
+                      WHERE ts.id_proceso_wf ='||v_parametros.id_proceso_wf;
+        --Devuelve la respuesta
+          return v_consulta;
+        end;
+    /*********************************
+ 	#TRANSACCION:  'ADQ_RESPTEC_SEL'
+ 	#DESCRIPCION:	Datos para Reporte de Especificaciones Técnicas
+ 	#AUTOR:		FEA
+ 	#FECHA:		05-05-2017
+	***********************************/
+    elsif(p_transaccion='ADQ_RESPTEC_SEL')then
+    	begin
+
+        v_consulta:='SELECT
+                      ts.justificacion,
+                      tci.desc_ingas,
+                      tsd.descripcion,
+                      tsd.precio_unitario,
+                      tsd.cantidad,
+                      tis.validez_oferta,
+                      tis.garantias,
+                      ts.lugar_entrega,
+                      ts.dias_plazo_entrega,
+                      tis.multas,
+                      tis.forma_pago,
+                      vfc.desc_funcionario1 AS p_nombre_jefe,
+                      vfc.descripcion_cargo AS p_cargo_jefe,
+                      vf.desc_funcionario1 AS p_nombre_sol,
+                      vf.descripcion_cargo AS p_cargo_sol
+                      FROM adq.tsolicitud ts
+                      INNER JOIN adq.tsolicitud_det tsd ON tsd.id_solicitud = ts.id_solicitud
+                      LEFT JOIN param.tconcepto_ingas tci ON tci.id_concepto_ingas = tsd.id_concepto_ingas
+                      INNER JOIN adq.tinformacion_secundaria tis ON tis.id_solicitud = ts.id_solicitud
+                      INNER JOIN orga.vfuncionario_cargo vf ON vf.id_funcionario = ts.id_funcionario
+                      INNER JOIN orga.vfuncionario_cargo vfc ON vfc.id_funcionario = ts.id_funcionario_aprobador
+                      WHERE ts.id_proceso_wf = '||v_parametros.id_proceso_wf;
+        --Devuelve la respuesta
+          return v_consulta;
+        end;
+    /*********************************
+ 	#TRANSACCION:  'ADQ_SOLOBS_SEL'
+ 	#DESCRIPCION:	Datos que nos permite visualizar las observaciones que tiene un funcionario
+ 	#AUTOR:		FEA
+ 	#FECHA:		05-05-2017
+	***********************************/
+    elsif(p_transaccion='ADQ_SOLOBS_SEL')then
+    	begin
+
+          v_lista_fun = '0';
+
+          select
+           pxp.list(fun.id_funcionario::varchar)
+          into
+           v_lista_fun
+          from orga.tfuncionario fun
+          inner join segu.tusuario usu on fun.id_persona = usu.id_persona
+          where usu.id_usuario = p_id_usuario;
+
+           IF p_administrador = 1 THEN
+             v_filtro = '0 = 0 ';
+          else
+             v_filtro = 'obs.id_funcionario_resp in ('||v_lista_fun||')' ;
+          END IF;
+
+          --Sentencia de la consulta
+		  v_consulta:='select
+                            obs.id_obs,
+                            obs.fecha_fin,
+                            obs.estado_reg,
+                            obs.estado,
+                            obs.descripcion,
+                            obs.id_funcionario_resp,
+                            obs.titulo,
+                            obs.desc_fin,
+                            obs.usuario_ai,
+                            obs.fecha_reg,
+                            obs.id_usuario_reg,
+                            obs.id_usuario_ai,
+                            obs.id_usuario_mod,
+                            obs.fecha_mod,
+                            usu1.cuenta as usr_reg,
+                            usu2.cuenta as usr_mod,
+                            te.codigo as codigo_tipo_estado,
+                            te.nombre_estado as nombre_tipo_estado,
+                            tp.nombre as nombre_tipo_proceso,
+                            pwf.nro_tramite,
+                            obs.id_estado_wf,
+                            pwf.id_proceso_wf,
+                            vf.desc_funcionario1 as desc_funcionario,
+                            tf.email_empresa,
+                            vfd.desc_funcionario1 as desc_fun_obs
+                      from wf.tobs obs
+                         inner join segu.tusuario usu1 on usu1.id_usuario = obs.id_usuario_reg
+                         left join segu.tusuario usu2 on usu2.id_usuario = obs.id_usuario_mod
+                         INNER JOIN orga.tfuncionario tf ON tf.id_persona = usu1.id_persona
+                         INNER JOIN orga.vfuncionario vfd ON  vfd.id_funcionario = tf.id_funcionario
+                         inner join orga.vfuncionario vf ON vf.id_funcionario = obs.id_funcionario_resp
+                         inner join wf.testado_wf ewf on ewf.id_estado_wf = obs.id_estado_wf
+                         inner join wf.ttipo_estado te on te.id_tipo_estado = ewf.id_tipo_estado
+                         inner join wf.tproceso_wf pwf on pwf.id_proceso_wf = ewf.id_proceso_wf
+                         inner join wf.ttipo_proceso tp on tp.id_tipo_proceso = pwf.id_tipo_proceso
+                      where  obs.estado_reg = ''activo'' and obs.estado = ''abierto''  and  '||v_filtro||'   and ';
+
+
+
+			--Definicion de la respuesta
+			v_consulta:=v_consulta||v_parametros.filtro;
+			v_consulta:=v_consulta||' order by ' ||v_parametros.ordenacion|| ' ' || v_parametros.dir_ordenacion || ' limit ' || v_parametros.cantidad || ' offset ' || v_parametros.puntero;
+            raise notice '... %', v_consulta;
+			--Devuelve la respuesta
+			return v_consulta;
+        end;
     else
 
 		raise exception 'Transaccion inexistente';

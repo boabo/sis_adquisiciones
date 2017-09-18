@@ -660,6 +660,35 @@ Phx.vista.CotizacionAdq = {
             	this.gruposBarraTareas = [{name:"proceso",title:"Doc del Proceso",grupo:0,height:0},
                             {name:"legales",title:"Doc. Legales",grupo:1,height:0}];
             }
+
+        //Se añade este campo para establecer el Nro de Cuotas
+       var configExtra = [
+           {
+               //configuracion del componente
+               config: {
+                   labelSeparator: '',
+                   inputType: 'hidden',
+                   name: 'id_solicitud',
+                   value:rec.data.id_solicitud
+               },
+               type: 'Field',
+               form: true,
+               id_grupo:1
+           },
+            {
+                config:{
+                    name: 'nro_cuotas',
+                    fieldLabel: 'Nro. Cuotas',
+                    qtip: 'Establesca el Nro. de Cuotas aproximado para la Compra de un Bien o Contratación de un Servicio.',
+                    allowBlank: true,
+                    width: '76%',
+                    value:rec.data.nro_cuotas
+                },
+                type: 'NumberField',
+                id_grupo: 0,
+                form: true
+            }
+        ];
             
             Phx.CP.loadWindows('../../../sis_workflow/vista/estado_wf/FormEstadoWf.php',
             'Estado de Wf',
@@ -667,14 +696,18 @@ Phx.vista.CotizacionAdq = {
                 modal:true,
                 width:700,
                 height:450
-            }, {data:{
+            },
+            {
+                configExtra: configExtra,
+                data:{
                    id_estado_wf: rec.data.id_estado_wf,
                    id_proceso_wf: rec.data.id_proceso_wf,
                    fecha_ini: rec.data.fecha_tentativa,
                    forzar_documentos : this.forzar_documentos,
                    gruposBarraTareas: this.gruposBarraTareas,
                    check_fisico : 'si'
-               }}, this.idContenedor,'FormEstadoWf',
+               }
+            }, this.idContenedor,'FormEstadoWf',
             {
                 config:[{
                           event:'beforesave',
@@ -690,7 +723,6 @@ Phx.vista.CotizacionAdq = {
     
      onSaveWizard:function(wizard,resp){
         Phx.CP.loadingShow();
-         
         Ext.Ajax.request({
             url:'../../sis_adquisiciones/control/Cotizacion/habilitarPago',
             params:{
@@ -700,7 +732,9 @@ Phx.vista.CotizacionAdq = {
                 id_funcionario_wf:  resp.id_funcionario_wf,
                 id_depto_wf:        resp.id_depto_wf,
                 obs:                resp.obs,
-                json_procesos:      Ext.util.JSON.encode(resp.procesos)
+                json_procesos:      Ext.util.JSON.encode(resp.procesos),
+                nro_cuotas:         resp.nro_cuotas,
+                id_solicitud:       resp.id_solicitud
                 },
             success:this.successWizard,
             failure: this.conexionFailure,
@@ -724,8 +758,6 @@ Phx.vista.CotizacionAdq = {
             	id_estado_wf: rec.data.id_estado_wf,
             	num_tramite: rec.data.num_tramite
             }
-            
-            console.log(rec.data)
             Phx.CP.loadWindows('../../../sis_workflow/vista/obs/Obs.php',
                     'Observaciones del WF',
                     {

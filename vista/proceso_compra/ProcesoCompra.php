@@ -25,11 +25,15 @@ Phx.vista.ProcesoCompra=Ext.extend(Phx.gridInterfaz,{
     bactGroups:  [0,1,2,3,4,5],
     btestGroups: [0],
     bexcelGroups: [0,1,2,3,4,5],
-    
+    idInterval:0,
     actualizarSegunTab: function(name, indice){
+
     	if(this.finCons){
-    		 this.store.baseParams.estado = name;
-    	     this.load({params:{start:0, limit:this.tam_pag}});
+            if(name=='en pago'){
+                this.getBoton('verificarForm').setVisible(true);
+            }
+            this.store.baseParams.estado = name;
+    	    this.load({params:{start:0, limit:this.tam_pag}});
          }
     },
     
@@ -56,7 +60,19 @@ Phx.vista.ProcesoCompra=Ext.extend(Phx.gridInterfaz,{
 	    this.addButton('btnRevePres',{grupo:[0,1,2,3,4], text:'Rev. Pre.',iconCls: 'balert',disabled:true,handler:this.onBtnRevPres,tooltip: '<b>Revertir Presupuesto</b> Revierte todo el presupuesto no adjudicado para la solicitud.'});
         this.addButton('btnFinPro',{grupo:[0,1,2,3,4], text:'Fin Proc.',iconCls: 'balert',disabled:true,handler:this.onBtnFinPro,tooltip: '<b>Finzalizar Proceso</b> Finaliza el proceso y la solicitud y revierte el presupuesto. No  puede deshacerse'});
         this.addButton('diagrama_gantt',{grupo:[0,1,2,3,4,5], text:'Diagrama Gantt',iconCls: 'bgantt',disabled:true,handler:this.diagramGantt,tooltip: '<b>Diagrama Gantt de proceso macro</b>'});
-        
+        this.addButton('verificarForm',{
+            grupo:[3],
+            text:'Verficar Form.',
+            iconCls: 'bsee',
+            disabled:true,
+            hidden:true,
+            handler:this.verificarForm400_500_conf,
+            tooltip: '<b>Verificar</b><br>Nos permite verificar que tramites tienen formulario 400, 500, Acta de Conformidad.'
+        });
+
+        //Evento para visualizar los tramites que ya tienen formulario 400, 500, Conformidad del Solicitante.
+        this.grid.addListener('cellclick', this.oncellclick,this);
+
         this.store.baseParams={};
         //coloca filtros para acceso directo si existen
         if(config.filtro_directo){
@@ -617,9 +633,33 @@ Phx.vista.ProcesoCompra=Ext.extend(Phx.gridInterfaz,{
             this.cmpNumTramite.setValue(dat.data.num_tramite)
       },this);
 	  
-	  
-	  
+	  //(f.e.a)setInterval para controlar si se cuenta con un numero determinado de procesos con el formulario 400
+      this.idInterval = setInterval(this.alertarFormularios_4_5, 5000);
+      console.log('this.idInterval', this.idInterval);
 	},
+
+    onButtonAct: function () {
+        Phx.vista.ProcesoCompra.superclass.onButtonAct.call(this);
+        console.log('this.idInterval', this.idInterval);
+        clearInterval(this.idInterval);
+    },
+
+    alertarFormularios_4_5: function () {
+        console.log('Hora:',(new Date()).getHours());
+        Ext.Ajax.request({
+            url:'../../sis_adquisiciones/control/ProcesoCompra/alertarFormularios_4_5',
+            params:{id_usuario:0},
+            success:function (resp) {
+                var reg = Ext.util.JSON.decode(Ext.util.Format.trim(resp.responseText));
+                console.log('reg',reg);
+                //window.open('../../../lib/lib_control/Intermediario.php?r='+reg.ROOT.detalle.archivo_generado+'&t='+new Date().toLocaleTimeString());
+            },
+            failure: this.conexionFailure,
+            timeout: this.timeout,
+            scope: this
+        });
+    },
+
 	loadCheckDocumentosSol:function() {
             var rec=this.sm.getSelected();
             
@@ -737,7 +777,6 @@ Phx.vista.ProcesoCompra=Ext.extend(Phx.gridInterfaz,{
         Phx.vista.ProcesoCompra.superclass.preparaMenu.call(this,n);
         this.getBoton('btnChequeoDocumentos').enable();
         this.getBoton('diagrama_gantt').enable();
-        
         if(data.estado=='anulado' || data.estado=='desierto'|| data.estado=='finalizado'){
             this.getBoton('edit').disable();
             this.getBoton('del').disable();
@@ -764,23 +803,55 @@ Phx.vista.ProcesoCompra=Ext.extend(Phx.gridInterfaz,{
             this.getBoton('btnRevePres').enable();
             this.getBoton('btnFinPro').enable();
             this.getBoton('btnReporte').enable();
-           
+           this.getBoton('verificarForm').enable();
         }
          return tb 
      },
      
      liberaMenu:function(){
         var tb = Phx.vista.ProcesoCompra.superclass.liberaMenu.call(this);
-        if(tb){           
+        if(tb){
+            
             this.getBoton('btnCotizacion').setDisabled(true);  
             this.getBoton('btnChequeoDocumentos').disable(); 
             this.getBoton('btnCuadroComparativo').disable();
             this.getBoton('diagrama_gantt').disable(); 
             this.getBoton('btnReporte').disable();       
+            this.getBoton('verificarForm').disable();
         }
        return tb
     },
-    
+
+    verificarForm400_500_conf: function () {
+        var record = this.sm.getSelected();
+        Phx.CP.loadWindows('../../../sis_adquisiciones/vista/reporte/VerificarFormularios.php',
+            'Estado de Form 400, 500, Conf.',
+            {
+                width: '75%',
+                height: '75%'
+            }, record.data,
+            this.idContenedor,
+            'VerificarFormularios'
+        );
+    },
+
+    oncellclick : function(grid, rowIndex, columnIndex, e) {
+        var record = this.store.getAt(rowIndex);
+
+        fieldName = grid.getColumnModel().getDataIndex(columnIndex);
+        if(fieldName == 'desc_funcionario' && record.data.estados_cotizacion == 'pago_habilitado') {
+            Phx.CP.loadWindows('../../../sis_adquisiciones/vista/reporte/VerificarFormularios.php',
+                'Estado de Form 400, 500, Conf.',
+                {
+                    width: '75%',
+                    height: '75%'
+                }, record.data,
+                this.idContenedor,
+                'VerificarFormularios'
+            );
+        }
+    },
+
 	sortInfo:{
 		field: 'fecha_reg',
 		direction: 'DESC'

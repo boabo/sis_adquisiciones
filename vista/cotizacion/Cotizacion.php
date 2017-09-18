@@ -745,7 +745,10 @@ Phx.vista.Cotizacion=Ext.extend(Phx.gridInterfaz,{
 		'funcionario_contacto',
         'telefono_contacto',
         'correo_contacto', 'correo_oc',
-        'prellenar_oferta', 'forma_pago', 'requiere_contrato','total_adjudicado','total_cotizado','total_adjudicado_mb','tiene_form500'
+        'prellenar_oferta', 'forma_pago', 'requiere_contrato','total_adjudicado','total_cotizado','total_adjudicado_mb','tiene_form500',
+        {name:'nro_cuotas', type: 'numeric'},
+        {name:'fecha_ini_cot', type: 'date'},
+        {name:'fecha_ven_cot', type: 'date'}
 		
 	],
     rowExpander: new Ext.ux.grid.RowExpander({
@@ -945,6 +948,13 @@ Phx.vista.Cotizacion=Ext.extend(Phx.gridInterfaz,{
                 alert('ocurrio un error durante el proceso')
             }
      },
+    onButtonEdit: function() {
+        var rec = this.sm.getSelected().data;
+        console.log('coty',rec);
+        Phx.vista.Cotizacion.superclass.onButtonEdit.call(this);
+        this.Cmp.fecha_coti.setValue(rec.fecha_ini_cot);
+        this.Cmp.fecha_venc.setValue(rec.fecha_ven_cot);
+    },
 	
 	bdel:true,
 	bsave:false,

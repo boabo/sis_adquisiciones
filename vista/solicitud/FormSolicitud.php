@@ -5,7 +5,7 @@
  *@author  Rensi Arteaga Copari
  *@date    30-01-2014
  *@description permites subir archivos a la tabla de documento_sol
- */
+ */  
 header("content-type: text/javascript; charset=UTF-8");
 ?>
 
@@ -24,18 +24,22 @@ header("content-type: text/javascript; charset=UTF-8");
 			//declaracion de eventos
 			this.addEvents('beforesave');
 			this.addEvents('successsave');
-
+			//console.log('cosas',config,this.idContenedorPadre, this.idContenedor);
+			this.maestro = config;
+			this.desc_gestion = '';
+			this.id_gestion = undefined;
 			this.buildComponentesDetalle();
 			this.buildDetailGrid();
 			this.buildGrupos();
 
 			Phx.vista.FormSolicitud.superclass.constructor.call(this,config);
 			this.init();
+
 			this.iniciarEventos();
 			this.iniciarEventosDetalle();
 			this.onNew();
 
-			this.Cmp.tipo_concepto.store.loadData(this.arrayStore['Bien'].concat(this.arrayStore['Servicio']));
+			this.Cmp.tipo_concepto.store.loadData(this.arrayStore['Bien'].concat(this.arrayStore['Servicio'])/*.concat(this.arrayStore['Boa'])*/);
 
 		},
 		buildComponentesDetalle: function(){
@@ -211,7 +215,7 @@ header("content-type: text/javascript; charset=UTF-8");
 		evaluaRequistos: function(){
 			//valida que todos los requistosprevios esten completos y habilita la adicion en el grid
 			var i = 0;
-			sw = true
+			sw = true;
 			while( i < this.Componentes.length) {
 
 				if(!this.Componentes[i].isValid()){
@@ -243,14 +247,16 @@ header("content-type: text/javascript; charset=UTF-8");
 			this.detCmp.id_orden_trabajo.modificado = true;
 
 			this.detCmp.id_centro_costo.store.baseParams.id_gestion = this.Cmp.id_gestion.getValue();
+
 			this.detCmp.id_centro_costo.store.baseParams.codigo_subsistema = 'ADQ';
+
 			this.detCmp.id_centro_costo.store.baseParams.id_depto = this.Cmp.id_depto.getValue();
 			this.detCmp.id_centro_costo.modificado = true;
 			//cuando esta el la inteface de presupeustos no filtra por bienes o servicios
 			this.detCmp.id_concepto_ingas.store.baseParams.tipo=this.Cmp.tipo.getValue();
 			this.detCmp.id_concepto_ingas.store.baseParams.id_gestion=this.Cmp.id_gestion.getValue();
 			this.detCmp.id_concepto_ingas.modificado = true;
-
+            console.log('gestion', this.Cmp.id_gestion.getValue(), 'depto', this.Cmp.id_depto.getValue());
 		},
 
 		evaluaGrilla: function(){
@@ -470,42 +476,42 @@ header("content-type: text/javascript; charset=UTF-8");
 							{
 								bodyStyle: 'padding-right:5px;',
 
+								border: false,
+								autoHeight: true,
+								items: [{
+									xtype: 'fieldset',
+									//frame: true,
+									layout: 'form',
+									title: ' DATOS BÁSICOS ',
+									width: '33%',
+									//border: false,
+									//margins: '0 0 0 5',
+									padding: '0 0 0 10',
+									bodyStyle: 'padding-left:5px;',
+									id_grupo: 0,
+									items: [],
+								}]
+							},
+							{
+								bodyStyle: 'padding-right:5px;',
+
 								autoHeight: true,
 								border: false,
 								items:[
 									{
 										xtype: 'fieldset',
-										frame: true,
-										border: false,
+										/*frame: true,
+										border: false,*/
 										layout: 'form',
-										title: 'Tipo',
+										title: 'DATOS COTIZACIÓN',
 										width: '33%',
 
 										//margins: '0 0 0 5',
 										padding: '0 0 0 10',
 										bodyStyle: 'padding-left:5px;',
-										id_grupo: 0,
+										id_grupo: 1,
 										items: [],
 									}]
-							},
-							{
-								bodyStyle: 'padding-right:5px;',
-
-								border: false,
-								autoHeight: true,
-								items: [{
-									xtype: 'fieldset',
-									frame: true,
-									layout: 'form',
-									title: ' Datos básicos ',
-									width: '33%',
-									border: false,
-									//margins: '0 0 0 5',
-									padding: '0 0 0 10',
-									bodyStyle: 'padding-left:5px;',
-									id_grupo: 1,
-									items: [],
-								}]
 							},
 							{
 								bodyStyle: 'padding-right:2px;',
@@ -514,11 +520,11 @@ header("content-type: text/javascript; charset=UTF-8");
 								autoHeight: true,
 								items: [{
 									xtype: 'fieldset',
-									frame: true,
+									//frame: true,
 									layout: 'form',
-									title: 'Tiempo',
+									title: 'DATOS DESCRIPTIVOS',
 									width: '33%',
-									border: false,
+									//border: false,
 									//margins: '0 0 0 5',
 									padding: '0 0 0 10',
 									bodyStyle: 'padding-left:2px;',
@@ -535,26 +541,24 @@ header("content-type: text/javascript; charset=UTF-8");
 
 		},
 
-		loadValoresIniciales:function()
-		{
+		loadValoresIniciales:function() {
 
 			Phx.vista.FormSolicitud.superclass.loadValoresIniciales.call(this);
 
-
-
 		},
 
-		successSave:function(resp)
+		/*successSave:function(resp)
 		{
 			Phx.CP.loadingHide();
 			Phx.CP.getPagina(this.idContenedorPadre).reload();
 			this.panel.close();
-		},
+		},*/
 
 
 		arrayStore :{
 			'Bien':[
 				['bien','Bienes'],
+				['boa_po','Boa PO']
 				//['inmueble','Inmuebles'],
 				//['vehiculo','Vehiculos']
 			],
@@ -562,8 +566,15 @@ header("content-type: text/javascript; charset=UTF-8");
 				['servicio','Servicios'],
 				['consultoria_personal','Consultoria de Personas'],
 				['consultoria_empresa','Consultoria de Empresas'],
+				['servicio_c','Servicio C.'],
+				['boa_rep','Boa Rep.'],
+				['capacitacion','Capacitacion']
 				//['alquiler_inmueble','Alquiler Inmuebles']
-			]
+			]/*,
+			'Boa':[
+
+
+			]*/
 		},
 		Atributos:[
 			{
@@ -577,7 +588,7 @@ header("content-type: text/javascript; charset=UTF-8");
 				form:true
 			},
 
-			{
+			/*{
 				//configuracion del componente
 				config:{
 					labelSeparator:'',
@@ -586,7 +597,7 @@ header("content-type: text/javascript; charset=UTF-8");
 				},
 				type:'Field',
 				form:true
-			},
+			},*/
 
 			{
 				//configuracion del componente
@@ -598,6 +609,23 @@ header("content-type: text/javascript; charset=UTF-8");
 				type:'Field',
 				form:true
 			},
+
+			{
+				config:{
+					name : 'id_gestion',
+					origen : 'GESTION',
+					fieldLabel : 'Gestión',
+					allowBlank : false,
+					forceSelection:false,
+					width: 125,
+					listWidth:'232',
+					pageSize: 5
+				},
+				type : 'ComboRec',
+				id_grupo : 0,
+				form : true
+			},
+
 			{
 				config:{
 					name: 'tipo_concepto',
@@ -619,37 +647,6 @@ header("content-type: text/javascript; charset=UTF-8");
 				},
 				type:'ComboBox',
 				id_grupo:0,
-				form:true
-			},
-			{
-				config:{
-					name:'id_funcionario',
-					hiddenName: 'id_funcionario',
-					origen: 'FUNCIONARIOCAR',
-					fieldLabel:'Funcionario Solicitante',
-					allowBlank: false,
-					valueField: 'id_funcionario',
-					width: '80%',
-					baseParams: { es_combo_solicitud : 'si' }
-				},
-				type: 'ComboRec',//ComboRec
-				id_grupo: 1,
-				form: true
-			},
-			{
-				config:{
-					name:'id_depto',
-					hiddenName: 'id_depto',
-					url: '../../sis_parametros/control/Depto/listarDeptoFiltradoXUsuario',
-					origen: 'DEPTO',
-					allowBlank: false,
-					fieldLabel: 'Depto',
-					disabled: true,
-					width: '80%',
-					baseParams: { estado:'activo', codigo_subsistema: 'ADQ' },
-				},
-				type:'ComboRec',
-				id_grupo: 1,
 				form:true
 			},
 
@@ -708,12 +705,59 @@ header("content-type: text/javascript; charset=UTF-8");
 
 			{
 				config:{
+					name:'id_funcionario',
+					hiddenName: 'id_funcionario',
+					origen: 'FUNCIONARIOCAR',
+					fieldLabel:'Funcionario Solicitante',
+					allowBlank: false,
+					valueField: 'id_funcionario',
+					width: '80%',
+					baseParams: { es_combo_solicitud : 'si' }
+				},
+				type: 'ComboRec',//ComboRec
+				id_grupo: 0,
+				form: true
+			},
+			{
+				config:{
+					name:'id_depto',
+					hiddenName: 'id_depto',
+					url: '../../sis_parametros/control/Depto/listarDeptoFiltradoXUsuario',
+					origen: 'DEPTO',
+					allowBlank: false,
+					fieldLabel: 'Depto',
+					disabled: true,
+					width: '80%',
+					baseParams: { estado:'activo', codigo_subsistema: 'ADQ' },
+				},
+				type:'ComboRec',
+				id_grupo: 0,
+				form:true
+			},
+
+			{
+				config:{
+					name: 'nro_cuotas',
+					fieldLabel: 'Nro. Cuotas',
+					qtip: 'Establesca el Nro. de Cuotas aproximado para la Compra de un Bien o Contratación de un Servicio.',
+					allowBlank: true,
+					width: '100%'
+				},
+				type: 'NumberField',
+				id_grupo: 0,
+				form: true
+			},
+
+
+			{
+				config:{
 					name: 'fecha_soli',
 					fieldLabel: 'Fecha Solicitud',
 					allowBlank: false,
 					disabled: false,
-					readOnly: false,
-					width: 105,
+					readOnly: true,
+					hidden:true,
+					width: 125,
 					format: 'd/m/Y'
 				},
 				type: 'DateField',
@@ -723,9 +767,37 @@ header("content-type: text/javascript; charset=UTF-8");
 
 			{
 				config:{
+					name: 'justificacion',
+					fieldLabel: 'Justificación Compra',
+					qtip:'Justifique, ¿por que la necesidad de esta compra?',
+					allowBlank: false,
+					width: 250,
+					maxLength:500
+				},
+				type:'TextArea',
+				id_grupo: 2,
+				form:true
+			},
+
+			{
+				config:{
+					name: 'lugar_entrega',
+					fieldLabel: 'Lugar de Entrega',
+					qtip:'Proporcionar una buena descripcion para informar al proveedor, Ej. Entrega en oficinas de aeropuerto Cochabamba, Jaime Rivera #28',
+					allowBlank: false,
+					width: '100%',
+					maxLength:255
+				},
+				type:'TextArea',
+				id_grupo: 2,
+				form:true
+			},
+
+			{
+				config:{
 					name: 'fecha_inicio',
-					fieldLabel: 'Fecha de Inicio Estimada',
-					qtip:'En que se fecha se estima el inicio del servicio',
+					fieldLabel: 'Fecha de Inicio',
+					qtip:'En que fecha se estima el inicio del servicio',
 					allowBlank: false,
 					disabled: false,
 					format: 'd/m/Y',
@@ -735,16 +807,33 @@ header("content-type: text/javascript; charset=UTF-8");
 				id_grupo: 2,
 				form:true
 			},
+
+			{
+				config:{
+					name: 'fecha_fin',
+					fieldLabel: 'Fecha Fin',
+					qtip:'En que fecha se estima la finalización del servicio',
+					allowBlank: false,
+					disabled: false,
+					format: 'd/m/Y',
+					width: 105
+				},
+				type:'DateField',
+				id_grupo: 2,
+				form:true
+			},
+
 			{
 				config:{
 					name: 'dias_plazo_entrega',
-					fieldLabel: 'Dias de Entrega (Calendario)',
+					fieldLabel: 'Plazo de Entrega (Dias Calendario)',
 					qtip: '¿Después de cuantos días calendario de emitida  la orden de compra se hara la entrega de los bienes?. EJM. Quedara de esta forma en la orden de Compra:  (Tiempo de entrega: X días calendario  a partir del dia siguiente de emitida la presente orden)',
 					allowBlank: false,
 					allowDecimals: false,
-					width: 100,
+					width: 125,
 					minValue:1,
-					maxLength:10
+					minLength:1,
+					maxLength:50
 				},
 				type:'NumberField',
 				filters:{pfiltro:'sold.dias_plazo_entrega',type:'numeric'},
@@ -763,46 +852,99 @@ header("content-type: text/javascript; charset=UTF-8");
 					valueField: 'id_proveedor'
 				},
 				type:'ComboRec',//ComboRec
-				id_grupo: 0,
+				id_grupo: 1,
 				form:true
 			},
+			{
+				config:{
+					name:'proveedor_unico',
+					fieldLabel:'Proveedor Unico',
+					allowBlank: true
+				},
+				type:'Checkbox',//ComboRec
+				id_grupo: 1,
+				form:true
+			},
+
 			{
 				config:{
 					name: 'correo_proveedor',
 					fieldLabel: 'Email Proveedor',
 					qtip: 'El correo del proveedor es necesario para el envió de notificaciones (como la orden de compra o invitación), asegúrese de que sea el correcto',
-					allowBlank: true
+					allowBlank: true,
+					width: '100%'
+
 				},
 				type: 'TextField',
-				id_grupo: 0,
+				id_grupo: 1,
 				form: true
 			},
+
 			{
 				config:{
-					name: 'justificacion',
-					fieldLabel: 'Justificacion/Objeto del Contrato',
-					qtip:'Justifique, ¿por que la necesidad de esta compra?',
-					allowBlank: false,
-					width: '100%',
-					maxLength:500
+					name: 'fecha_ini_cot',
+					fieldLabel: 'Fecha de Cotización.',
+					qtip:'Fecha en la que se hace la Cotización',
+					allowBlank: true,
+					disabled: false,
+					format: 'd/m/Y',
+					width: 105
 				},
-				type:'TextArea',
+				type:'DateField',
 				id_grupo: 1,
 				form:true
 			},
+
 			{
 				config:{
-					name: 'lugar_entrega',
-					fieldLabel: 'Lugar de Entrega',
-					qtip:'Proporcionar una buena descripcion para informar al proveedor, Ej. Entrega en oficinas de aeropuerto Cochabamba, Jaime Rivera #28',
+					name: 'fecha_ven_cot',
+					fieldLabel: 'Fecha Vencimiento Cotización',
+					qtip:'Fecha Limite de la Cotización',
+					allowBlank: true,
+					disabled: false,
+					format: 'd/m/Y',
+					width: 105
+				},
+				type:'DateField',
+				id_grupo: 1,
+				form:true
+			},
+
+			{
+				config:{
+					name: 'nro_po',
+					fieldLabel: 'Nro. de P.O.',
+					qtip:'Ingrese el nro. de P.O.',
 					allowBlank: false,
-					width: '100%',
+					disabled: false,
+					//anchor: '80%',
+					width: 125,
+					gwidth: 100,
 					maxLength:255
 				},
-				type:'TextArea',
-				id_grupo: 1,
+				type:'TextField',
+				id_grupo:1,
+				grid:false,
 				form:true
 			},
+
+			{
+				config:{
+					name: 'fecha_po',
+					fieldLabel: 'Fecha de P.O.',
+					qtip:'Fecha del P.O.',
+					allowBlank: false,
+					gwidth: 100,
+					width: 125,
+					format: 'd/m/Y',
+					renderer:function (value,p,record){return value?value.dateFormat('d/m/Y'):''}
+				},
+				type:'DateField',
+				id_grupo:1,
+				grid:false,
+				form:true
+			},
+
 			{
 				config:{
 					name: 'precontrato',
@@ -815,6 +957,7 @@ header("content-type: text/javascript; charset=UTF-8");
 					lazyRender: true,
 					mode: 'local',
 					gwidth: 100,
+					width: 125,
 					store: ['no_necesita','contrato_nuevo','contrato_adhesion','ampliacion_contrato']
 				},
 				type: 'ComboBox',
@@ -827,84 +970,135 @@ header("content-type: text/javascript; charset=UTF-8");
 				valorInicial: 'no_necesita',
 				grid:false,
 				form:true
-			},
-			{
-				config:{
-					name: 'nro_po',
-					fieldLabel: 'Nro. de P.O.',
-					qtip:'Ingrese el nro. de P.O.',
-					allowBlank: true,
-					disabled: false,
-					anchor: '80%',
-					gwidth: 100,
-					maxLength:255
-				},
-				type:'TextField',
-				id_grupo:2,
-				grid:false,
-				form:true
-			},
-
-			{
-				config:{
-					name: 'fecha_po',
-					fieldLabel: 'Fecha de P.O.',
-					qtip:'Fecha del P.O.',
-					allowBlank: true,
-					gwidth: 100,
-					format: 'd/m/Y',
-					renderer:function (value,p,record){return value?value.dateFormat('d/m/Y'):''}
-				},
-				type:'DateField',
-				id_grupo:2,
-				grid:false,
-				form:true
 			}
 		],
 		title: 'Frm solicitud',
 
 		iniciarEventos:function(){
+			//Se carga el campo gestion con la gestion actual en la que se realiza la solicitud pero puede ser modifado 
+			//y poder elegir una gestion siguiente.
+			Ext.Ajax.request({
+				url:'../../sis_parametros/control/Gestion/obtenerGestionByFecha',
+				params:{fecha:new Date()},
+				success:function (resp) {
+					var reg = Ext.util.JSON.decode(Ext.util.Format.trim(resp.responseText));
+					if(!reg.ROOT.error){
+						this.Cmp.id_gestion.setValue(reg.ROOT.datos.id_gestion);
+						this.Cmp.id_gestion.setRawValue(reg.ROOT.datos.anho);
+						this.desc_gestion = reg.ROOT.datos.anho;
+						this.id_gestion = reg.ROOT.datos.id_gestion
+					}else{
+
+						alert('Ocurrio un error al obtener la Gestión')
+					}
+				},
+				failure: this.conexionFailure,
+				timeout:this.timeout,
+				scope:this
+			});
+
+			this.Cmp.id_gestion.on('blur', function (rec) {
+
+				this.Cmp.id_gestion.setValue(this.id_gestion);
+				this.Cmp.id_gestion.setRawValue(this.desc_gestion);
+			},this);
 
 			this.cmpFechaSoli = this.getComponente('fecha_soli');
 			this.cmpIdDepto = this.getComponente('id_depto');
-			this.cmpIdGestion = this.getComponente('id_gestion');
+			//this.cmpIdGestion = this.getComponente('id_gestion');
 
+
+			/*Se aumentaron campos fecha_inicio, fecha_fin para establecer el rango de prestacion de servicios, nro_po, fecha_po
+			para para la categoria Boa P.O.*/
+			this.ocultarComponente(this.Cmp.fecha_inicio);
+			this.ocultarComponente(this.Cmp.fecha_fin);
 			this.ocultarComponente(this.Cmp.nro_po);
 			this.ocultarComponente(this.Cmp.fecha_po);
 
 			//inicio de eventos
-			this.cmpFechaSoli.on('change',function(f){
+			//En caso de que el campo fecha solicitud este deshabilitada
 
-				this.obtenerGestion(this.cmpFechaSoli);
+
+			/*this.Cmp.id_funcionario.enable();
+			this.Cmp.id_funcionario.store.baseParams.fecha =this.cmpFechaSoli.getValue().dateFormat(this.cmpFechaSoli.format);*/
+			/*this.cmpFechaSoli.on('change',function(f){
+
+				//this.obtenerGestion(this.cmpFechaSoli);
 				this.Cmp.id_funcionario.enable();
 				this.Cmp.id_funcionario.store.baseParams.fecha = this.cmpFechaSoli.getValue().dateFormat(this.cmpFechaSoli.format);
 
+			},this);*/
+
+			this.Cmp.fecha_ini_cot.on('select',function( o, newValue, oldValue ){
+				this.Cmp.fecha_ven_cot.setMinValue(newValue);
+				this.Cmp.fecha_ven_cot.setMaxValue(new Date('12/31/'+newValue.getFullYear()));
+				this.Cmp.fecha_ven_cot.reset();
+			}, this);
+
+			this.Cmp.fecha_inicio.on('select',function(o, newValue, oldValue ){
+				this.Cmp.fecha_fin.setMinValue(newValue);
+				maxValue = new Date('12/31/'+newValue.getFullYear());
+				this.Cmp.fecha_fin.setMaxValue(maxValue);
+				if(this.Cmp.tipo_concepto.getValue()=='boa_rep' || this.Cmp.tipo_concepto.getValue()=='boa_po'){
+					this.Cmp.fecha_fin.setValue((this.Cmp.fecha_inicio.getValue().getDate()+30));
+					this.Cmp.dias_plazo_entrega.setValue((this.Cmp.fecha_fin.getValue()-this.Cmp.fecha_inicio.getValue())/(1000*60*60*24));
+				}
 			},this);
 
 
 			this.Cmp.tipo_concepto.on('select',function(cmp,rec){
+				this.Cmp.fecha_inicio.reset();
+				this.Cmp.fecha_fin.reset();
+				this.Cmp.dias_plazo_entrega.reset();
+				//Mostramos el campo nro_po y fecha_po para el tipo de servicion Boa PO
+				if(cmp.value == 'boa_po'){
+					this.mostrarComponente(this.Cmp.nro_po);
+					this.mostrarComponente(this.Cmp.fecha_po);
 
-				//identificamos si es un bien o un servicio
+
+				}else{
+					this.ocultarComponente(this.Cmp.nro_po);
+					this.ocultarComponente(this.Cmp.fecha_po);
+				}
+
+
+				//identificamos si es un bien o un servicio o tipo 'Boa', requerimiento reciente
 				if(this.isInArray(rec.json, this.arrayStore['Bien'])){
+
 					this.Cmp.tipo.setValue('Bien');
 				}
-				else{
+				else if(this.isInArray(rec.json, this.arrayStore['Servicio'])){
+
 					this.Cmp.tipo.setValue('Servicio');
-				}
+				}/*else if(this.isInArray(rec.json, this.arrayStore['Boa'])){
+					this.Cmp.tipo.setValue('Boa');
+				}*/
+
 
 				if(this.Cmp.tipo.getValue() == 'Bien'){
 					this.Cmp.lugar_entrega.setValue('Almacenes de Oficina Cochabamba');
-					this.ocultarComponente(this.Cmp.fecha_inicio);
+					this.mostrarComponente(this.Cmp.fecha_inicio);
+					this.mostrarComponente(this.Cmp.fecha_fin);
 					this.Cmp.dias_plazo_entrega.allowBlank = false;
 
 				}
-				else{
+				else if(this.Cmp.tipo.getValue() == 'Servicio'){
 					this.Cmp.lugar_entrega.setValue('');
 					this.mostrarComponente(this.Cmp.fecha_inicio);
+					this.mostrarComponente(this.Cmp.fecha_fin);
 					this.Cmp.dias_plazo_entrega.allowBlank = true;
-				}
-				this.mostrarComponente(this.Cmp.dias_plazo_entrega);
 
+				}/*else if(this.Cmp.tipo.getValue() == 'Boa'){
+
+					this.Cmp.lugar_entrega.setValue('');
+					this.mostrarComponente(this.Cmp.fecha_inicio);
+					this.mostrarComponente(this.Cmp.fecha_fin);
+					this.Cmp.dias_plazo_entrega.allowBlank = true;
+
+
+				}*/
+
+				this.mostrarComponente(this.Cmp.dias_plazo_entrega);
 
 			},this);
 
@@ -935,18 +1129,14 @@ header("content-type: text/javascript; charset=UTF-8");
 			}, this);
 
 			this.Cmp.id_proveedor.on('select', function(combo, record, index){
-
 				this.Cmp.correo_proveedor.reset();
 				this.Cmp.correo_proveedor.setValue(record.data.email);
-
 
 			}, this);
 
 			this.Cmp.id_categoria_compra.on('select', function(combo, record, index){
 
 				if(combo.lastSelectionText=='Compra Internacional'){
-					this.mostrarComponente(this.Cmp.nro_po);
-					this.mostrarComponente(this.Cmp.fecha_po);
 
 					Ext.Ajax.request({
 						url:'../../sis_adquisiciones/control/Solicitud/listarMoneda',
@@ -963,8 +1153,6 @@ header("content-type: text/javascript; charset=UTF-8");
 					});
 					
 				}else if(combo.lastSelectionText=='Compra Nacional'){
-					this.ocultarComponente(this.Cmp.nro_po);
-					this.ocultarComponente(this.Cmp.fecha_po);
 
 					Ext.Ajax.request({
 						url:'../../sis_adquisiciones/control/Solicitud/listarMoneda',
@@ -983,13 +1171,11 @@ header("content-type: text/javascript; charset=UTF-8");
 					
 				}
 
-
-
 			}, this);
 
 		},
 
-		obtenerGestion:function(x){
+		/*obtenerGestion:function(x){
 
 			var fecha = x.getValue().dateFormat(x.format);
 			Phx.CP.loadingShow();
@@ -1015,8 +1201,9 @@ header("content-type: text/javascript; charset=UTF-8");
 
 				alert('ocurrio al obtener la gestion')
 			}
-		},
+		},*/
 		onEdit:function(){
+
 			this.cmpFechaSoli.disable();
 			this.cmpIdDepto.disable();
 			this.Cmp.id_categoria_compra.disable();
@@ -1027,6 +1214,7 @@ header("content-type: text/javascript; charset=UTF-8");
 			this.Cmp.id_moneda.disable();
 			this.Cmp.id_funcionario.store.baseParams.fecha = this.cmpFechaSoli.getValue().dateFormat(this.cmpFechaSoli.format);
 			//this.Cmp.fecha_soli.fireEvent('change');
+			//this.Cmp.fecha_inicio.fireEvent('change');
 
 			if(this.Cmp.tipo.getValue() == 'Bien' ||  this.Cmp.tipo.getValue() == 'Bien - Servicio'){
 				this.ocultarComponente(this.Cmp.fecha_inicio);
@@ -1040,20 +1228,24 @@ header("content-type: text/javascript; charset=UTF-8");
 		},
 
 		onNew: function(){
-
 			this.cmpIdDepto.disable();
 			this.form.getForm().reset();
 			this.loadValoresIniciales();
-			if(this.getValidComponente(0)){
+
+			//No es Necesario que el primer componente tenga el foco por defecto ya que se carga con un valor por defecto
+			/*if(this.getValidComponente(0)){
 				this.getValidComponente(0).focus(false, 100);
-			}
+			}*/
 
 			this.Cmp.id_categoria_compra.enable();
 
-			this.Cmp.id_funcionario.disable();
+			//this.Cmp.id_funcionario.disable();
 			this.Cmp.fecha_soli.enable();
 			this.Cmp.fecha_soli.setValue(new Date());
-			this.Cmp.fecha_soli.fireEvent('change');
+			//this.Cmp.fecha_soli.fireEvent('change');
+			//this.Cmp.fecha_inicio.fireEvent('change');
+
+			this.Cmp.id_funcionario.store.baseParams.fecha = this.cmpFechaSoli.getValue().dateFormat(this.cmpFechaSoli.format);//Linea
 			this.Cmp.tipo.enable();
 			this.Cmp.tipo_concepto.enable();
 			this.Cmp.id_moneda.enable();
@@ -1092,6 +1284,7 @@ header("content-type: text/javascript; charset=UTF-8");
 		},
 
 		onSubmit: function(o) {
+			//console.log('cosas',this.idContenedorPadre, this.idContenedor, Phx.CP.getPagina(this.idContenedorPadre));
 			//  validar formularios
 			var arra = [], i, me = this;
 			for (i = 0; i < me.megrid.store.getCount(); i++) {
@@ -1148,12 +1341,27 @@ header("content-type: text/javascript; charset=UTF-8");
 
 		successSave: function(resp){
 
+
 			Phx.CP.loadingHide();
+			//var objRes = Ext.util.JSON.decode(Ext.util.Format.trim(resp.responseText));
 			var objRes = Ext.util.JSON.decode(Ext.util.Format.trim(resp.responseText));
-			this.fireEvent('successsave',this,objRes);
-
+			Phx.CP.getPagina(this.idContenedorPadre).reload();
+			this.panel.close();
+			objRes.new = 'new';
+			thos = this;
+			Phx.CP.loadWindows('../../../sis_adquisiciones/vista/solicitud/SolicitudInformacionSec.php',
+				'Información Secundaria',
+				{
+					width:'80%',
+					height:'80%'
+				},
+				objRes,
+				this.idContenedorPadre,
+				'SolicitudInformacionSec'
+			);
+			//this.fireEvent('successsave',this,objRes);
 		},
-
+		
 		loadCheckDocumentosSolWf:function(data) {
 			//TODO Eventos para cuando ce cierre o destruye la interface de documentos
 			Phx.CP.loadWindows('../../../sis_workflow/vista/documento_wf/DocumentoWf.php',
@@ -1167,8 +1375,7 @@ header("content-type: text/javascript; charset=UTF-8");
 				'DocumentoWf'
 			);
 
-		}
-
-
+		}//Ventana que permite almacenar informacion secundaria para especificacion tecnica e informe de solicitud
+		
 	})
 </script>

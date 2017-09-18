@@ -581,6 +581,32 @@ class ACTCotizacion extends ACTbase{
         $this->res=$this->objFunc->cambioFomrulario500($this->objParam);
         $this->res->imprimirRespuesta($this->res->generarJson());
     }
+
+    //Funcion que nos permite visualizar los tramites que ya tienen  form 500, conformidad.
+    function listarFormularios(){
+
+        $this->objParam->defecto('ordenacion','id_cotizacion');
+        $this->objParam->defecto('dir_ordenacion','asc');
+
+        switch($this->objParam->getParametro('pes_estado')){
+            case 'form_400':
+                $this->objParam->addFiltro("(tdw.momento= ''exigir'' AND ttd.codigo =''FORM400'') ");
+                break;
+            case 'form_500':
+                $this->objParam->addFiltro("(tdw.momento= ''exigir'' AND ttd.codigo =''FORM500'') ");
+                break;
+        }
+
+        if($this->objParam->getParametro('tipoReporte')=='excel_grid' || $this->objParam->getParametro('tipoReporte')=='pdf_grid'){
+            $this->objReporte = new Reporte($this->objParam,$this);
+            $this->res = $this->objReporte->generarReporteListado('MODCotizacion','listarFormularios');
+        }else {
+
+            $this->objFunc = $this->create('MODCotizacion');
+            $this->res = $this->objFunc->listarFormularios($this->objParam);
+        }
+        $this->res->imprimirRespuesta($this->res->generarJson());
+    }
     
 
 }

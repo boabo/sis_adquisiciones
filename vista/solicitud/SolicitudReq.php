@@ -52,7 +52,7 @@ Phx.vista.SolicitudReq = {
 		
     		Phx.vista.SolicitudReq.superclass.constructor.call(this,config);
     		this.addButton('fin_requerimiento',{ grupo:[0],text:'Finalizar', iconCls: 'badelante', disabled: true, handler: this.fin_requerimiento, tooltip: '<b>Finalizar</b>'});
-            this.addButton('btnSolpre',{ grupo:[0,],text:'Sol Pre.',iconCls: 'bemail', disabled: true, handler: this.onSolModPresupuesto, tooltip: '<b>Solicitar Presuuesto</b><p>Emite un correo para solicitar traspaso presupuestario</p>'});
+            this.addButton('btnSolpre',{ grupo:[0,],text:'Sol Pre.',iconCls: 'bemail', disabled: true, handler: this.onSolModPresupuesto, tooltip: '<b>Solicitar Presupuesto</b><p>Emite un correo para solicitar traspaso presupuestario</p>'});
        
         
             this.iniciarEventos();
@@ -153,6 +153,26 @@ Phx.vista.SolicitudReq = {
     	this.load({params:{start:0, limit:this.tam_pag}});
 		
 		this.finCons = true;
+
+        this.addButton('informacion_sec',{
+            grupo: [0,1,2],
+            text: 'Inf. Secundaria',
+            iconCls: 'binfo',
+            disabled: false,
+            handler: this.informacionSec,
+            tooltip: '<b>Permite ver los reclamos que fallaron, al enviar correo de Respuesta.</b>',
+            scope:this
+        });
+
+        this.addButton('solicitud_obs',{
+            grupo: [0,1,2],
+            text: 'Sol. Observadas',
+            iconCls: 'balert',
+            disabled: false,
+            handler: this.solicitudObs,
+            tooltip: '<b>Nos permite visualizar las observaciones hechas a una solicitud y cerrarlas si corresponde.</b>',
+            scope:this
+        });
 		
 	},
     
@@ -170,7 +190,7 @@ Phx.vista.SolicitudReq = {
 	                                }, {data:{objPadre: me}
 	                                }, 
 	                                this.idContenedor,
-	                                'FormSolicitud',
+	                                'FormSolicitud'/*,
 	                                {
 	                                    config:[{
 	                                              event:'successsave',
@@ -179,16 +199,17 @@ Phx.vista.SolicitudReq = {
 	                                            }],
 	                                    
 	                                    scope:this
-	                                 });    
+	                                 }*/);
 	    
 		
-           
+
     },
     
     onSaveForm: function(form,  objRes){
     	var me = this;
-    	
     	//muestra la ventana de documentos para este proceso wf
+        console.log('paso 3');
+        console.log('form', form, 'objRes', objRes);
 	    Phx.CP.loadWindows('../../../sis_workflow/vista/documento_wf/DocumentoWf.php',
                     'Chequear documento del WF',
                     {
@@ -199,7 +220,7 @@ Phx.vista.SolicitudReq = {
 				    	id_solicitud: objRes.ROOT.datos.id_solicitud,
 				    	id_proceso_wf: objRes.ROOT.datos.id_proceso_wf,
 				    	num_tramite: objRes.ROOT.datos.num_tramite,
-				    	estao: objRes.ROOT.datos.estado,
+				    	estado: objRes.ROOT.datos.estado,
 				    	nombreVista: 'Formulario de solicitud de compra',
 				    	tipo: 'solcom'  //para crear un boton de guardar directamente en la ventana de documentos
 				    	
@@ -215,9 +236,9 @@ Phx.vista.SolicitudReq = {
                         
                         scope:this
                      }
-        )
+        );
     	
-    	form.panel.destroy()
+    	form.panel.destroy();
         me.reload();
     	
     },
@@ -241,6 +262,7 @@ Phx.vista.SolicitudReq = {
     },
     onButtonEdit:function(){
 
+       var rec = this.getSelectedData();
        this.cmpFechaSoli.disable();
        this.cmpIdDepto.disable();   
        this.Cmp.id_funcionario.disable();     
@@ -262,14 +284,16 @@ Phx.vista.SolicitudReq = {
            this.ocultarComponente(this.Cmp.nro_po);
            this.ocultarComponente(this.Cmp.fecha_po);
        }
-
+        
 
        if(this.Cmp.tipo.getValue() == 'Bien' ||  this.Cmp.tipo.getValue() == 'Bien - Servicio'){
             	this.ocultarComponente(this.Cmp.fecha_inicio);
+            	this.ocultarComponente(this.Cmp.fecha_fin);
             	this.Cmp.dias_plazo_entrega.allowBlank = false;
         }
         else{
         	this.mostrarComponente(this.Cmp.fecha_inicio);
+        	this.mostrarComponente(this.Cmp.fecha_fin);
         	this.Cmp.dias_plazo_entrega.allowBlank = true;
         }
         this.mostrarComponente(this.Cmp.dias_plazo_entrega);
@@ -303,12 +327,14 @@ Phx.vista.SolicitudReq = {
            	   if(this.Cmp.tipo.getValue() == 'Bien'){
                 	this.Cmp.lugar_entrega.setValue('Almacenes de Oficina Cochabamba');
                 	this.ocultarComponente(this.Cmp.fecha_inicio);
+                	this.ocultarComponente(this.Cmp.fecha_fin);
                 	this.Cmp.dias_plazo_entrega.allowBlank = false;
                 	
                 }
                 else{
                 	this.Cmp.lugar_entrega.setValue('');
                 	this.mostrarComponente(this.Cmp.fecha_inicio);
+                	this.mostrarComponente(this.Cmp.fecha_fin);
                 	this.Cmp.dias_plazo_entrega.allowBlank = true;
                 }
                 this.mostrarComponente(this.Cmp.dias_plazo_entrega);
@@ -356,7 +382,30 @@ Phx.vista.SolicitudReq = {
        fin_requerimiento:function(paneldoc)
         {                   
             var d= this.sm.getSelected().data;
-           
+            Ext.Ajax.request({
+                url:'../../sis_adquisiciones/control/Solicitud/verificarInformacionSec',
+                params:{'id_solicitud':d.id_solicitud},
+                success: function (resp) {
+                    var reg = Ext.decode(Ext.util.Format.trim(resp.responseText));
+                    console.log('reg',reg);
+                    if(reg.ROOT.datos.v_valid == 'true'){
+                        Phx.CP.loadWindows('../../../sis_adquisiciones/vista/solicitud/SolicitudInformacionSec.php',
+                            'Información Secundaria',
+                            {
+                                width: '80%',
+                                height: '80%'
+                            },
+                            d,
+                            this.idContenedor,
+                            'SolicitudInformacionSec'
+                        );
+                     }
+                },
+                failure: this.conexionFailure,
+                timeout:this.timeout,
+                scope:this
+            });
+
             Phx.CP.loadingShow();
             this.cmbRPC.reset();
             
@@ -439,7 +488,9 @@ Phx.vista.SolicitudReq = {
       this.menuAdq.enable();    
       if(data['estado']==  'borrador' || data['estado']==  'Borrador'){
          this.getBoton('fin_requerimiento').enable();
-         
+         this.getBoton('informacion_sec').enable();
+         this.getBoton('solicitud_obs').enable();
+
        }
        else{
            this.getBoton('fin_requerimiento').disable();
@@ -467,19 +518,47 @@ Phx.vista.SolicitudReq = {
         if(tb){
             this.getBoton('fin_requerimiento').disable();
             this.getBoton('btnSolpre').disable(); 
+            this.getBoton('informacion_sec').disable();
+            this.getBoton('solicitud_obs').disable();
             this.menuAdq.disable();
         }
         
        return tb
-    },    
-       
-	
-	south:
-          { 
+    },
+
+    informacionSec: function () {
+        var rec=this.sm.getSelected();
+
+        Phx.CP.loadWindows('../../../sis_adquisiciones/vista/solicitud/SolicitudInformacionSec.php',
+            'Información Secundaria',
+            {
+                width: '80%',
+                height: '80%'
+            },
+            rec.data,
+            this.idContenedor,
+            'SolicitudInformacionSec'
+        );
+    },
+
+	south:{
           url:'../../../sis_adquisiciones/vista/solicitud_det/SolicitudReqDet.php',
           title:'Detalle', 
           height:'50%',
           cls:'SolicitudReqDet'
-         }
+    },
+
+    solicitudObs: function () {
+        //var record = this.sm.getSelected().data;
+        Phx.CP.loadWindows('../../../sis_adquisiciones/vista/solicitud/SolicitudesObs.php',
+            'Observaciones de Solicitudes',
+            {
+                width:'80%',
+                height:'70%'
+            },undefined,
+            this.idContenedor,
+            'SolicitudesObs'
+        );
+    }
 };
 </script>

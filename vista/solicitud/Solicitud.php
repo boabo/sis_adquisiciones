@@ -10,7 +10,9 @@ header("content-type: text/javascript; charset=UTF-8");
 ?>
 <script>
 Phx.vista.Solicitud=Ext.extend(Phx.gridInterfaz,{
-   
+
+    fwidth:'90%',
+    fheight:'68%',
 	constructor:function(config){
 		this.maestro=config.maestro;
     	//llama al constructor de la clase padre
@@ -51,13 +53,108 @@ Phx.vista.Solicitud=Ext.extend(Phx.gridInterfaz,{
                     handler : this.onOpenObs,
                     tooltip : '<b>Observaciones</b><br/><b>Observaciones del WF</b>'
          });
-        
-        
-        
+
+
+        this.addButton('btnDetalleGasto',
+            {
+                text: 'Subir Detalle Gasto',
+                iconCls: 'bdocuments',
+                disabled: true,
+                handler: this.onDetalleGasto,
+                tooltip: 'Subir archivo con el detalle de gasto'
+            }
+        );
         
         
        
 	},
+
+    Grupos : [{
+        layout: 'column',
+        border: false,
+        defaults: {
+            border: false
+        },
+        items:[
+        {
+            xtype: 'fieldset',
+            border: false,
+            split: true,
+            layout: 'column',
+            region: 'north',
+            autoScroll: true,
+            autoHeight: true,
+            collapseFirst : false,
+
+            width: '100%',
+            //autoHeight: true,
+            padding: '0 0 0 10',
+            items:[
+                {
+                    bodyStyle: 'padding-right:5px;',
+
+                    border: false,
+                    autoHeight: true,
+                    items: [
+                        {
+                            xtype: 'fieldset',
+                            //frame: true,
+                            layout: 'form',
+                            title: ' DATOS BÁSICOS ',
+                            width: '33%',
+                            height: 337,
+                            padding: '0 0 0 10',
+                            bodyStyle: 'padding-left:5px;',
+                            id_grupo: 0,
+                            items: []
+                        }
+                    ]
+                },
+
+                {
+                    bodyStyle: 'padding-right:5px;',
+
+                    border: false,
+                    autoHeight: true,
+                    items: [
+
+                        {
+                            xtype: 'fieldset',
+
+                            layout: 'form',
+                            title: 'DATOS COTIZACIÓN',
+                            width: '33%',
+
+                            height: 337,
+                            padding: '0 0 0 10',
+                            bodyStyle: 'padding-left:5px;',
+                            id_grupo: 1,
+                            items: [],
+                        }
+                    ]
+                },
+
+                {
+                    bodyStyle: 'padding-right:2px;',
+
+                    border: false,
+                    autoHeight: true,
+                    items: [{
+                        xtype: 'fieldset',
+                        //frame: true,
+                        layout: 'form',
+                        title: 'DATOS DESCRIPTIVOS',
+                        width: '33%',
+                        height: 337,
+                        padding: '0 0 0 10',
+                        bodyStyle: 'padding-left:2px;',
+                        id_grupo: 2,
+                        items: []
+                    }]
+                }
+            ]
+        }]
+    }],
 	
 	diagramGantt: function (){			
 			var data=this.sm.getSelected().data.id_proceso_wf;
@@ -182,7 +279,7 @@ Phx.vista.Solicitud=Ext.extend(Phx.gridInterfaz,{
             },
             type:'Checkbox',
             filters:{pfiltro:'plapa.revisado_asistente',type:'string'},
-            id_grupo:1,
+            id_grupo:3,
             grid:false,
             form:false
         },
@@ -207,7 +304,7 @@ Phx.vista.Solicitud=Ext.extend(Phx.gridInterfaz,{
             type:'TextField',
             filters:{pfiltro:'sol.num_tramite',type:'string'},
             bottom_filter:true,
-            id_grupo:1,
+            id_grupo:3,
             grid:true,
             form:false
         },{
@@ -235,7 +332,7 @@ Phx.vista.Solicitud=Ext.extend(Phx.gridInterfaz,{
 			type:'TextField',
 			filters:{pfiltro:'sol.estado',type:'string'},
 			bottom_filter:true,
-			id_grupo:1,
+			id_grupo:3,
 			grid:true,
 			form:false
 		},
@@ -258,7 +355,7 @@ Phx.vista.Solicitud=Ext.extend(Phx.gridInterfaz,{
                 allowBlank: false,
                 emptyText:'Subtipo...',
                 renderer:function (value, p, record){
-                	    var dato='';
+                        var dato='';
                         dato = (value=='alquiler_inmueble')?'Alquiler Inmuebles':dato;
                         dato = (dato==''&&value=='consultoria_empresa')?'Consultoria de Empresas':dato;
                         dato = (dato==''&&value=='consultoria_personal')?'Consultoria de Personas':dato;
@@ -268,11 +365,11 @@ Phx.vista.Solicitud=Ext.extend(Phx.gridInterfaz,{
                         dato = (dato==''&&value=='bien')?'Bienes':dato;
                         return String.format('{0}', dato);
                     },
-                
+
                 store:new Ext.data.ArrayStore({
                             fields :['variable','valor'],
                             data :  []}),
-               
+
                 valueField: 'variable',
                 displayField: 'valor',
                 forceSelection: true,
@@ -289,64 +386,374 @@ Phx.vista.Solicitud=Ext.extend(Phx.gridInterfaz,{
             grid:true,
             form:false
         },
-           
-       {
+
+        {
+            config: {
+                name: 'id_categoria_compra',
+                hiddenName: 'id_categoria_compra',
+                fieldLabel: 'Categoria de Compra',
+                typeAhead: false,
+                forceSelection: false,
+                allowBlank: false,
+                emptyText: 'Categorias...',
+                store: new Ext.data.JsonStore({
+                    url: '../../sis_adquisiciones/control/CategoriaCompra/listarCategoriaCompra',
+                    id: 'id_categoria_compra',
+                    root: 'datos',
+                    sortInfo: {
+                        field: 'catcomp.nombre',
+                        direction: 'ASC'
+                    },
+                    totalProperty: 'total',
+                    fields: ['id_categoria_compra', 'nombre', 'codigo'],
+                    // turn on remote sorting
+                    remoteSort: true,
+                    baseParams: {par_filtro: 'catcomp.nombre#catcomp.codigo',codigo_subsistema:'ADQ'}
+                }),
+                valueField: 'id_categoria_compra',
+                displayField: 'nombre',
+                gdisplayField: 'desc_categoria_compra',
+                triggerAction: 'all',
+                lazyRender: true,
+                mode: 'remote',
+                pageSize: 20,
+                queryDelay: 200,
+                listWidth:280,
+                minChars: 2,
+                gwidth: 170,
+                renderer: function(value, p, record) {
+                    return String.format('{0}', record.data['desc_categoria_compra']);
+                },
+                tpl: '<tpl for="."><div class="x-combo-list-item"><p>{nombre}</p>Codigo: <strong>{codigo}</strong> </div></tpl>'
+            },
+            type: 'ComboBox',
+            id_grupo: 0,
+            filters: {
+                pfiltro: 'cat.nombre',
+                type: 'string'
+            },
+            grid: true,
+            form: false
+        },
+
+        {
             config:{
                 name:'id_moneda',
                 origen:'MONEDA',
-                 allowBlank:false,
+                allowBlank:false,
                 fieldLabel:'Moneda',
                 gdisplayField:'desc_moneda',//mapea al store del grid
                 gwidth:50,
-                 renderer:function (value, p, record){return String.format('{0}', record.data['desc_moneda']);}
-             },
+                renderer:function (value, p, record){return String.format('{0}', record.data['desc_moneda']);}
+            },
             type:'ComboRec',
-            id_grupo:1,
-            filters:{   
+            id_grupo:0,
+            filters:{
                 pfiltro:'mon.codigo',
                 type:'string'
             },
             grid:true,
             form:false
-          },	     
-		
+        },
+
+        {
+            config:{
+                name:'id_funcionario',
+                hiddenName: 'id_funcionario',
+                origen:'FUNCIONARIOCAR',
+                fieldLabel:'Funcionario',
+                allowBlank:false,
+                gwidth:200,
+                valueField: 'id_funcionario',
+                gdisplayField: 'desc_funcionario',
+                baseParams: { es_combo_solicitud : 'si' },
+                renderer:function(value, p, record){return String.format('{0}', record.data['desc_funcionario']);}
+            },
+            type:'ComboRec',//ComboRec
+            id_grupo:0,
+            filters:{pfiltro:'fun.desc_funcionario1',type:'string'},
+            bottom_filter:true,
+            grid:true,
+            form:false
+        },
+
+        {
+            config:{
+                name:'id_depto',
+                hiddenName: 'id_depto',
+                url: '../../sis_parametros/control/Depto/listarDeptoFiltradoXUsuario',
+                origen:'DEPTO',
+                allowBlank:false,
+                fieldLabel: 'Depto',
+                gdisplayField:'desc_depto',//dibuja el campo extra de la consulta al hacer un inner join con orra tabla
+                width:250,
+                gwidth:180,
+                baseParams:{estado:'activo',codigo_subsistema:'ADQ'},//parametros adicionales que se le pasan al store
+                renderer:function (value, p, record){return String.format('{0}', record.data['desc_depto']);}
+            },
+            //type:'TrigguerCombo',
+            type:'ComboRec',
+            id_grupo:0,
+            filters:{pfiltro:'depto.nombre',type:'string'},
+            grid:false,
+            form:false
+        },
+
+        {
+            config:{
+                name: 'nro_cuotas',
+                fieldLabel: 'Nro. Cuotas',
+                qtip: 'Establesca el Nro. de Cuotas aproximado para la Compra de un Bien o Contratación de un Servicio.',
+                allowBlank: true,
+                width: '100%'
+            },
+            type: 'NumberField',
+            id_grupo: 0,
+            form: true
+        },
+
+        {
+            config:{
+                name:'id_proveedor',
+                hiddenName: 'id_proveedor',
+                origen:'PROVEEDOR',
+                fieldLabel:'Proveedor Precotizacion',
+                allowBlank:false,
+                width: 250,
+                tinit:false,
+                gwidth:200,
+
+                valueField: 'id_proveedor',
+                gdisplayField: 'desc_proveedor',
+                renderer:function(value, p, record){return String.format('{0}', record.data['desc_proveedor']);}
+            },
+            type:'ComboRec',//ComboRec
+            id_grupo:1,
+            filters:{pfiltro:'pro.desc_proveedor',type:'string'},
+            bottom_filter:true,
+            grid:true,
+            form:false
+        },
+
+        {
+            config:{
+                name:'proveedor_unico',
+                fieldLabel:'Proveedor Unico',
+                allowBlank: true
+            },
+            type:'Checkbox',//ComboRec
+            id_grupo: 1,
+            form:true
+        },
+
+        {
+            config:{
+                name: 'correo_proveedor',
+                fieldLabel: 'Email Proveedor',
+                qtip: 'El correo del proveedor es necesario para el envió de notificaciones (como la orden de compra o invitación), asegúrese de que sea el correcto',
+                allowBlank: true,
+                width: '100%'
+
+            },
+            type: 'TextField',
+            id_grupo: 1,
+            form: true
+        },
+
+        {
+            config:{
+                name: 'fecha_ini_cot',
+                fieldLabel: 'Fecha de Cotización.',
+                qtip:'Fecha en la que se hace la Cotización',
+                allowBlank: true,
+                disabled: false,
+                format: 'd/m/Y',
+                width: 105
+            },
+            type:'DateField',
+            id_grupo: 1,
+            form:true
+        },
+
+        {
+            config:{
+                name: 'fecha_ven_cot',
+                fieldLabel: 'Fecha Vencimiento Cotización',
+                qtip:'Fecha Limite de la Cotización',
+                allowBlank: true,
+                disabled: false,
+                format: 'd/m/Y',
+                width: 105
+            },
+            type:'DateField',
+            id_grupo: 1,
+            form:true
+        },
+        {
+            config:{
+                name: 'nro_po',
+                fieldLabel: 'Nro. de P.O.',
+                qtip:'Ingrese el nro. de P.O.',
+                allowBlank: true,
+                width: 105,
+                gwidth: 100,
+                maxLength:255
+            },
+            type:'TextField',
+            id_grupo:1,
+            filters:{pfiltro:'sol.nro_po',type:'string'},
+            grid: true,
+            form: true
+        },
+
+        {
+            config:{
+                name: 'fecha_po',
+                fieldLabel: 'Fecha de P.O.',
+                qtip:'Fecha del P.O.',
+                allowBlank: true,
+                gwidth: 100,
+                width: 105,
+                format: 'd/m/Y',
+                renderer:function (value,p,record){return value?value.dateFormat('d/m/Y'):''}
+            },
+            type:'DateField',
+            id_grupo:1,
+            grid: true,
+            form: true
+        },
+        {
+            config:{
+                name: 'justificacion',
+                fieldLabel: 'Justificacion',
+                qtip:'Justifique, ¿por que la necesidad de esta compra?',
+                allowBlank: false,
+                anchor: '100%',
+                gwidth: 100,
+                width: 250,
+                maxLength:500
+            },
+            type:'TextArea',
+            filters:{pfiltro:'sol.justificacion',type:'string'},
+            id_grupo:2,
+            grid:true,
+            form:false
+        },
+        {
+            config:{
+                name: 'lugar_entrega',
+                fieldLabel: 'Lugar Entrega',
+                qtip:'Proporcionar una buena descripcion para informar al proveedor, Ejm. Entrega en oficinas de aeropuerto Cochabamba, Jaime Rivera #28',
+                allowBlank: false,
+                anchor: '100%',
+                gwidth: 100,
+                maxLength:255
+            },
+            type:'TextArea',
+            filters:{pfiltro:'sol.lugar_entrega',type:'string'},
+            id_grupo:2,
+            grid:true,
+            form:false
+        },
+
+        {
+            config:{
+                name: 'dias_plazo_entrega',
+                fieldLabel: 'Plazo de Entrega(Dias Calendario)',//Dias entrega (Calendario)
+                qtip: '¿Después de cuantos días calendario de emitida  la orden de compra se hara la entrega de los bienes?. EJM. Quedara de esta forma en la orden de Compra:  (Tiempo de entrega: X días calendario  de emitida la presente orden)',
+                allowBlank: true,
+                allowDecimals: false,
+                anchor: '100%',
+                gwidth: 100,
+                minValue: 2,
+                minLength:1,
+                maxLength:50/*,
+                value: ' (dias calendario).'*/
+            },
+            type: 'NumberField',
+            filters: { pfiltro: 'sold.cantidad', type: 'numeric' },
+            id_grupo: 2,
+            grid: true,
+            form: false
+        },
+
+        {
+            config:{
+                name: 'precontrato',
+                fieldLabel: 'Tipo de Contrato',
+                qtip: 'Si tine un contrato de adhesion',
+                allowBlank: false,
+                emptyText: 'Tipo...',
+                typeAhead: true,
+                triggerAction: 'all',
+                lazyRender: true,
+                mode: 'local',
+                gwidth: 100,
+                anchor: '100%',
+                store: ['no_necesita','contrato_nuevo','contrato_adhesion','ampliacion_contrato']
+            },
+            type: 'ComboBox',
+            id_grupo: 2,
+            filters:{
+                type: 'list',
+                pfiltro:'sol.tipo',
+                options: ['no_necesita','contrato_nuevo','contrato_adhesion','ampliacion_contrato'],
+            },
+            valorInicial: 'no_necesita',
+            grid:false,
+            form:true
+        },
+        {
+            config:{
+                name: 'fecha_inicio',
+                fieldLabel: 'Fecha Inicio Estimada.',
+                qtip:'En que se fecha se estima el inicio del servicio',
+                allowBlank: false,
+                disabled: false,
+                gwidth: 100,
+                format: 'd/m/Y',
+                renderer:function (value,p,record){return value?value.dateFormat('d/m/Y'):''}
+            },
+            type:'DateField',
+            filters:{pfiltro:'sol.fecha_soli',type:'date'},
+            id_grupo:2,
+            grid:true,
+            form:false
+        },
+
+        {
+            config:{
+                name: 'fecha_fin',
+                fieldLabel: 'Fecha Fin',
+                qtip:'En que fecha se estima la finalización del servicio',
+                allowBlank: false,
+                disabled: false,
+                format: 'd/m/Y',
+                width: 105
+            },
+            type:'DateField',
+            id_grupo: 2,
+            form:true
+        },
+
         {
             config:{
                 name: 'fecha_soli',
                 fieldLabel: 'Fecha Sol.',
                 allowBlank: false,
                 disabled: false,
+                hidden: true,
                 gwidth: 100,
                         format: 'd/m/Y', 
                         renderer:function (value,p,record){return value?value.dateFormat('d/m/Y'):''}
             },
             type:'DateField',
             filters:{pfiltro:'sol.fecha_soli',type:'date'},
-            id_grupo:1,
+            id_grupo:3,
             grid:true,
             form:false
         },
-		{
-   			config:{
-   				name:'id_depto',
-   				 hiddenName: 'id_depto',
-   				 url: '../../sis_parametros/control/Depto/listarDeptoFiltradoXUsuario',
-	   				origen:'DEPTO',
-	   				allowBlank:false,
-	   				fieldLabel: 'Depto',
-	   				gdisplayField:'desc_depto',//dibuja el campo extra de la consulta al hacer un inner join con orra tabla
-	   				width:250,
-   			        gwidth:180,
-	   				baseParams:{estado:'activo',codigo_subsistema:'ADQ'},//parametros adicionales que se le pasan al store
-	      			renderer:function (value, p, record){return String.format('{0}', record.data['desc_depto']);}
-   			},
-   			//type:'TrigguerCombo',
-   			type:'ComboRec',
-   			id_grupo:0,
-   			filters:{pfiltro:'depto.nombre',type:'string'},
-   		    grid:false,
-   			form:false
-       	},
+
 		{
 			config:{
 				name: 'numero',
@@ -358,30 +765,11 @@ Phx.vista.Solicitud=Ext.extend(Phx.gridInterfaz,{
 			},
 			type:'TextField',
 			filters:{pfiltro:'sol.numero',type:'string'},
-			id_grupo:1,
+			id_grupo:3,
 			grid:true,
 			form:false
 		},
-		 {
-   			config:{
-       		    name:'id_funcionario',
-       		     hiddenName: 'id_funcionario',
-   				origen:'FUNCIONARIOCAR',
-   				fieldLabel:'Funcionario',
-   				allowBlank:false,
-                gwidth:200,
-   				valueField: 'id_funcionario',
-   			    gdisplayField: 'desc_funcionario',
-   			    baseParams: { es_combo_solicitud : 'si' },
-      			renderer:function(value, p, record){return String.format('{0}', record.data['desc_funcionario']);}
-       	     },
-   			type:'ComboRec',//ComboRec
-   			id_grupo:0,
-   			filters:{pfiltro:'fun.desc_funcionario1',type:'string'},
-   			bottom_filter:true,
-   		    grid:true,
-   			form:false
-		 },
+
       	   {
    			config:{
        		    name:'id_uo',
@@ -395,7 +783,7 @@ Phx.vista.Solicitud=Ext.extend(Phx.gridInterfaz,{
    			    renderer:function (value, p, record){return String.format('{0}', record.data['desc_uo']);}
        	     },
    			type:'ComboRec',
-   			id_grupo:1,
+   			id_grupo:3,
    			filters:{	
 		        pfiltro:'uo.codigo#uo.nombre_unidad',
 				type:'string'
@@ -423,7 +811,7 @@ Phx.vista.Solicitud=Ext.extend(Phx.gridInterfaz,{
             },
             type:'Field',
             filters:{pfiltro:'ew.obs#instruc_rpc',type:'string'},
-            id_grupo:1,
+            id_grupo:3,
             grid:true,
             form:false
         },
@@ -443,7 +831,7 @@ Phx.vista.Solicitud=Ext.extend(Phx.gridInterfaz,{
              },
             type:'ComboRec',//ComboRec
             filters:{pfiltro:'funa.desc_funcionario1',type:'string'},
-            id_grupo:0,
+            id_grupo:3,
             grid:true,
             form:false
          },
@@ -456,7 +844,7 @@ Phx.vista.Solicitud=Ext.extend(Phx.gridInterfaz,{
             },
             type:'Field',
             filters:{pfiltro:'funrpc.desc_funcionario1',type:'string'},
-            id_grupo:1,
+            id_grupo:3,
             grid:true,
             form:false
         }
@@ -474,203 +862,11 @@ Phx.vista.Solicitud=Ext.extend(Phx.gridInterfaz,{
 			},
 			type:'DateField',
 			filters:{pfiltro:'sol.fecha_apro',type:'date'},
-			id_grupo:1,
+			id_grupo:3,
 			grid:true,
 			form:false
 		},
-		{
-			config: {
-				name: 'id_categoria_compra',
-				hiddenName: 'id_categoria_compra',
-				fieldLabel: 'Categoria de Compra',
-				typeAhead: false,
-				forceSelection: false,
-				allowBlank: false,
-				emptyText: 'Categorias...',
-				store: new Ext.data.JsonStore({
-					url: '../../sis_adquisiciones/control/CategoriaCompra/listarCategoriaCompra',
-					id: 'id_categoria_compra',
-					root: 'datos',
-					sortInfo: {
-						field: 'catcomp.nombre',
-						direction: 'ASC'
-					},
-					totalProperty: 'total',
-					fields: ['id_categoria_compra', 'nombre', 'codigo'],
-					// turn on remote sorting
-					remoteSort: true,
-					baseParams: {par_filtro: 'catcomp.nombre#catcomp.codigo',codigo_subsistema:'ADQ'}
-				}),
-				valueField: 'id_categoria_compra',
-				displayField: 'nombre',
-				gdisplayField: 'desc_categoria_compra',
-				triggerAction: 'all',
-				lazyRender: true,
-				mode: 'remote',
-				pageSize: 20,
-				queryDelay: 200,
-				listWidth:280,
-				minChars: 2,
-				gwidth: 170,
-				renderer: function(value, p, record) {
-					return String.format('{0}', record.data['desc_categoria_compra']);
-				},
-				tpl: '<tpl for="."><div class="x-combo-list-item"><p>{nombre}</p>Codigo: <strong>{codigo}</strong> </div></tpl>'
-			},
-			type: 'ComboBox',
-			id_grupo: 0,
-			filters: {
-				pfiltro: 'cat.nombre',
-				type: 'string'
-			},
-			grid: true,
-			form: false
-		},
-        {
-            config:{
-                name: 'precontrato',
-                fieldLabel: 'Tipo de Contrato',
-                qtip: 'Si tine un contrato de adhesion',
-                allowBlank: false,
-                emptyText: 'Tipo...',
-                typeAhead: true,
-                triggerAction: 'all',
-                lazyRender: true,
-                mode: 'local',
-                gwidth: 100,
-                store: ['no_necesita','contrato_nuevo','contrato_adhesion','ampliacion_contrato']
-            },
-            type: 'ComboBox',
-            id_grupo: 2,
-            filters:{
-                type: 'list',
-                pfiltro:'sol.tipo',
-                options: ['no_necesita','contrato_nuevo','contrato_adhesion','ampliacion_contrato'],
-            },
-            valorInicial: 'no_necesita',
-            grid:false,
-            form:true
-        },
-         {
-            config:{
-                name:'id_proveedor',
-                hiddenName: 'id_proveedor',
-                origen:'PROVEEDOR',
-                fieldLabel:'Proveedor Precotizacion',
-                allowBlank:false,
-                tinit:false,
-                gwidth:200,
-                valueField: 'id_proveedor',
-                gdisplayField: 'desc_proveedor',
-                renderer:function(value, p, record){return String.format('{0}', record.data['desc_proveedor']);}
-             },
-            type:'ComboRec',//ComboRec
-            id_grupo:0,
-            filters:{pfiltro:'pro.desc_proveedor',type:'string'},
-            bottom_filter:true,
-            grid:true,
-            form:false
-        },
-		{
-			config:{
-				name: 'justificacion',
-				fieldLabel: 'Justificacion',
-				qtip:'Justifique, ¿por que la necesidad de esta compra?',
-				allowBlank: false,
-				anchor: '80%',
-				gwidth: 100,
-				maxLength:500
-			},
-			type:'TextArea',
-			filters:{pfiltro:'sol.justificacion',type:'string'},
-			id_grupo:1,
-			grid:true,
-			form:false
-		},
-		{
-			config:{
-				name: 'lugar_entrega',
-				fieldLabel: 'Lugar Entrega',
-				qtip:'Proporcionar una buena descripcion para informar al proveedor, Ejm. Entrega en oficinas de aeropuerto Cochabamba, Jaime Rivera #28',
-				allowBlank: false,
-				anchor: '80%',
-				gwidth: 100,
-				maxLength:255
-			},
-			type:'TextArea',
-			filters:{pfiltro:'sol.lugar_entrega',type:'string'},
-			id_grupo:1,
-			grid:true,
-			form:false
-		},	     
-		
-        {
-            config:{
-                name: 'fecha_inicio',
-                fieldLabel: 'Fecha Inicio Estimada.',
-                qtip:'En que se fecha se estima el inicio del servicio',
-                allowBlank: false,
-                disabled: false,
-                gwidth: 100,
-                        format: 'd/m/Y', 
-                        renderer:function (value,p,record){return value?value.dateFormat('d/m/Y'):''}
-            },
-            type:'DateField',
-            filters:{pfiltro:'sol.fecha_soli',type:'date'},
-            id_grupo:1,
-            grid:true,
-            form:false
-        },
-        {
-            config:{
-                name: 'dias_plazo_entrega',
-                fieldLabel: 'Dias entrega (Calendario)',
-                qtip: '¿Después de cuantos días calendario de emitida  la orden de compra se hara la entrega de los bienes?. EJM. Quedara de esta forma en la orden de Compra:  (Tiempo de entrega: X días calendario  de emitida la presente orden)',
-                allowBlank: true,
-                allowDecimals: false,
-                width: 100,
-                gwidth: 100,
-                minValue: 1,
-                maxLength: 10
-            },
-            type: 'NumberField',
-            filters: { pfiltro: 'sold.cantidad', type: 'numeric' },
-            id_grupo: 1,
-            grid: true,
-            form: false
-        },
-        {
-            config:{
-                name: 'nro_po',
-                fieldLabel: 'Nro. de P.O.',
-                qtip:'Ingrese el nro. de P.O.',
-                allowBlank: true,
-                width: 100,
-                gwidth: 100,
-                maxLength:255
-            },
-            type:'TextField',
-            id_grupo:1,
 
-            grid: true,
-            form: true
-        },
-
-        {
-            config:{
-                name: 'fecha_po',
-                fieldLabel: 'Fecha de P.O.',
-                qtip:'Fecha del P.O.',
-                allowBlank: true,
-                gwidth: 100,
-                format: 'd/m/Y',
-                renderer:function (value,p,record){return value?value.dateFormat('d/m/Y'):''}
-            },
-            type:'DateField',
-            id_grupo:1,
-            grid: true,
-            form: true
-        },
 		{
 			config:{
 				name: 'posibles_proveedores',
@@ -875,8 +1071,14 @@ Phx.vista.Solicitud=Ext.extend(Phx.gridInterfaz,{
 		'precontrato',
 		'update_enable','codigo_poa','obs_poa','contador_estados',
         'nro_po',
-        {name:'fecha_po', type: 'date',dateFormat:'Y-m-d'}
-		
+        {name:'fecha_po', type: 'date',dateFormat:'Y-m-d'},
+        {name:'nro_cuotas', type: 'numeric'},
+        {name:'fecha_ini_cot', type: 'date',dateFormat:'Y-m-d'},
+        {name:'fecha_ven_cot', type: 'date',dateFormat:'Y-m-d'},
+        {name:'proveedor_unico', type: 'boolean'},
+        {name:'fecha_fin', type: 'date', dateFormat:'Y-m-d'},
+        {name:'correo_proveedor', type: 'string'}
+
 	],
 	
 	arrayDefaultColumHidden:['id_fecha_reg','id_fecha_mod',
@@ -929,7 +1131,7 @@ Phx.vista.Solicitud=Ext.extend(Phx.gridInterfaz,{
         //this.getBoton('btnReporte').setDisabled(false); 
         this.getBoton('diagrama_gantt').enable();
         this.getBoton('btnObs').enable(); 
-        
+        this.getBoton('btnDetalleGasto').enable();
         
         
         return tb 
@@ -942,8 +1144,8 @@ Phx.vista.Solicitud=Ext.extend(Phx.gridInterfaz,{
             //this.getBoton('btnChequeoDocumentos').setDisabled(true);
             this.getBoton('btnChequeoDocumentosWf').setDisabled(true);
             this.getBoton('diagrama_gantt').disable();  
-            this.getBoton('btnObs').disable(); 
-              
+            this.getBoton('btnObs').disable();
+            this.getBoton('btnDetalleGasto').disable();
                     
         }
        return tb
@@ -960,7 +1162,18 @@ Phx.vista.Solicitud=Ext.extend(Phx.gridInterfaz,{
             scope:this
         });  
 	},
-	
+
+    onDetalleGasto : function() {
+        var rec=this.sm.getSelected();
+        Phx.CP.loadWindows('../../../sis_adquisiciones/vista/solicitud_det/FormDetalleGastoSolicitud.php',
+            'Subir Detalle Gasto',
+            {
+                modal:true,
+                width:450,
+                height:200
+            },rec.data,this.idContenedor,'FormDetalleGastoSolicitud')
+    },
+
 	onButtonRepOC: function(){
                 var rec=this.sm.getSelected();
 				Ext.Ajax.request({
@@ -1024,7 +1237,7 @@ Phx.vista.Solicitud=Ext.extend(Phx.gridInterfaz,{
             	num_tramite: rec.data.num_tramite
             }
             
-            Phx.CP.loadWindows('../../../sis_workflow/vista/obs/Obs.php',
+            Phx.CP.loadWindows('../../../sis_workflow/vista/obs/ObsFuncionario.php',
                     'Observaciones del WF',
                     {
                         width:'80%',
@@ -1032,7 +1245,7 @@ Phx.vista.Solicitud=Ext.extend(Phx.gridInterfaz,{
                     },
                     data,
                     this.idContenedor,
-                    'Obs'
+                    'ObsFuncionario'
         )
     },
     

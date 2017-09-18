@@ -71,7 +71,11 @@ class MODCotizacion extends MODbase{
 		$this->captura('total_adjudicado_mb','numeric');
 		$this->captura('tiene_form500','varchar');
 		$this->captura('correo_oc','varchar');
-		
+		$this->captura('nro_cuotas','int4');
+		$this->captura('id_solicitud','int4');
+		$this->captura('fecha_ini_cot','date');
+		$this->captura('fecha_ven_cot','date');
+
 		
 		
 		 
@@ -570,7 +574,9 @@ class MODCotizacion extends MODbase{
         $this->setParametro('id_depto_wf','id_depto_wf','int4');
         $this->setParametro('obs','obs','text');
         $this->setParametro('json_procesos','json_procesos','text');
-    
+        $this->setParametro('nro_cuotas','nro_cuotas','int4');
+        $this->setParametro('id_solicitud','id_solicitud','int4');
+
 
         //Ejecuta la instruccion
         $this->armarConsulta();
@@ -670,9 +676,37 @@ class MODCotizacion extends MODbase{
 		//Devuelve la respuesta
 		return $this->respuesta;
 	}
-    
-	
 
-			
+	function listarFormularios(){
+		//Definicion de variables para ejecucion del procedimiento
+		$this->procedimiento='adq.f_cotizacion_sel';
+		$this->transaccion='ADQ_VERFORM_SEL';
+		$this->tipo_procedimiento='SEL';
+		//$this->setCount(false);
+		//Define los parametros para la funcion
+		//$this->setParametro('','','int4');
+		$this->setParametro('nro_tramite', 'nro_tramite', 'varchar');
+		$this->setParametro('tipo', 'tipo', 'varchar');
+		$this->setParametro('pes_estado', 'pes_estado', 'varchar');
+
+
+		$this->captura('id_cotizacion', 'int4');
+		$this->captura('num_tramite', 'varchar');
+		$this->captura('id_funcionario', 'varchar');
+		$this->captura('conformidad', 'varchar');
+		$this->captura('tiene_form500', 'varchar');
+		$this->captura('nro_cuota', 'numeric');
+		$this->captura('tieneform400', 'varchar');
+
+
+
+		//Ejecuta la instruccion
+		$this->armarConsulta();
+		//var_dump($this->consulta);exit;
+		$this->ejecutarConsulta();
+
+		//Devuelve la respuesta
+		return $this->respuesta;
+	}
 }
 ?>

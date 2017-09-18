@@ -1,5 +1,4 @@
 --------------- SQL ---------------
-
 CREATE OR REPLACE FUNCTION adq.f_cotizacion_sel (
   p_administrador integer,
   p_id_usuario integer,
@@ -14,13 +13,13 @@ $body$
  DESCRIPCION:   Funcion que devuelve conjuntos de registros de las consultas relacionadas con la tabla 'adq.tcotizacion'
  AUTOR: 		Gonzalo Sarmiento Sejas
  FECHA:	        21-03-2013 14:48:35
- COMENTARIOS:	
+ COMENTARIOS:
 ***************************************************************************
  HISTORIAL DE MODIFICACIONES:
 
- DESCRIPCION:	
- AUTOR:			
- FECHA:		
+ DESCRIPCION:
+ AUTOR:
+ FECHA:
 ***************************************************************************/
 
 DECLARE
@@ -31,39 +30,44 @@ DECLARE
 	v_resp				varchar;
     v_add_filtro 		varchar;
     v_cotizaciones		record;
-      
+
     v_historico        varchar;
     v_inner            varchar;
-  
+
     v_strg_cot			varchar;
 	v_filtro varchar;
-    
-    		    
+
+    --variables control form400, form500, conformidad
+    v_cadena_form400    varchar;
+    v_cadena_form500	varchar;
+    v_id_gestion		integer;
+    v_num_tramite		varchar;
+    v_fecha_inicio		date;
 BEGIN
 
 	v_nombre_funcion = 'adq.f_cotizacion_sel';
     v_parametros = pxp.f_get_record(p_tabla);
 
-	/*********************************    
+	/*********************************
  	#TRANSACCION:  'ADQ_COT_SEL'
  	#DESCRIPCION:	Consulta de datos
- 	#AUTOR:		Gonzalo Sarmiento Sejas	
+ 	#AUTOR:		Gonzalo Sarmiento Sejas
  	#FECHA:		21-03-2013 14:48:35
 	***********************************/
 
 	if(p_transaccion='ADQ_COT_SEL')then
-     				
+
     	begin
             IF  pxp.f_existe_parametro(p_tabla, 'id_proceso_compra') THEN
             	v_filtro = 'cot.id_proceso_compra='||v_parametros.id_proceso_compra||' and ';
             ELSE
                 v_filtro = '';
             END IF;
-            
-            
+
+
     		--Sentencia de la consulta
 			v_consulta:='WITH detalle as (
-                                       Select 
+                                       Select
                                         cd.id_cotizacion,
                                         sum(cd.cantidad_adju *cd.precio_unitario) as total_adjudicado,
                                         sum(cd.cantidad_coti *cd.precio_unitario) as total_cotizado,
@@ -71,7 +75,7 @@ BEGIN
                                       FROM  adq.tcotizacion_det  cd
                                       WHERE cd.estado_reg = ''activo''
                                       GROUP by cd.id_cotizacion
-                                      
+
                         )
                       select
 						cot.id_cotizacion,
@@ -82,7 +86,7 @@ BEGIN
 						cot.fecha_coti,
 						COALESCE(cot.numero_oc,''S/N''),
 						cot.id_proveedor,
-                        pro.desc_proveedor,					
+                        pro.desc_proveedor,
 						cot.fecha_entrega,
 						cot.id_moneda,
                         mon.moneda,
@@ -90,7 +94,7 @@ BEGIN
 						cot.fecha_venc,
 						cot.obs,
 						cot.fecha_adju,
-						cot.nro_contrato,					
+						cot.nro_contrato,
 						cot.fecha_reg,
 						cot.id_usuario_reg,
 						cot.fecha_mod,
@@ -116,7 +120,11 @@ BEGIN
                         d.total_cotizado,
                         d.total_adjudicado_mb,
                         cot.tiene_form500,
-                        cot.correo_oc
+                        cot.correo_oc,
+                        sol.nro_cuotas,
+                        sol.id_solicitud,
+                        sol.fecha_ini_cot,
+                        sol.fecha_ven_cot
 						from adq.tcotizacion cot
                         inner join adq.tproceso_compra proc on proc.id_proceso_compra = cot.id_proceso_compra
                         inner join adq.tsolicitud sol on sol.id_solicitud = proc.id_solicitud
@@ -125,21 +133,21 @@ BEGIN
 				        inner join param.tmoneda mon on mon.id_moneda = cot.id_moneda
                         inner join param.vproveedor pro on pro.id_proveedor = cot.id_proveedor
                         left join segu.tusuario usu2 on usu2.id_usuario = cot.id_usuario_mod
-                        
+
                         where '||v_filtro;
-			
-           
+
+
 			--Definicion de la respuesta
 			v_consulta:=v_consulta||v_parametros.filtro;
 			v_consulta:=v_consulta||' order by ' ||v_parametros.ordenacion|| ' ' || v_parametros.dir_ordenacion || ' limit ' || v_parametros.cantidad || ' offset ' || v_parametros.puntero;
              raise notice '%', v_consulta;
 			--Devuelve la respuesta
 			return v_consulta;
-						
+
 		end;
-    /*********************************    
+    /*********************************
  	#TRANSACCION:  'ADQ_COT_CONT'
- 	#DESCRIPCION:	Conteo de registros de la consulta de cotizaciones 
+ 	#DESCRIPCION:	Conteo de registros de la consulta de cotizaciones
  	#AUTOR:	 	Gonzalo Sarmiento Sejas
  	#FECHA:		21-03-2013 14:48:35
 	***********************************/
@@ -147,16 +155,16 @@ BEGIN
 	elsif(p_transaccion='ADQ_COT_CONT')then
 
 		begin
-        
+
             IF  pxp.f_existe_parametro(p_tabla, 'id_proceso_compra') THEN
             	v_filtro = 'cot.id_proceso_compra='||v_parametros.id_proceso_compra||' and ';
             ELSE
                 v_filtro = '';
             END IF;
-            
+
 			--Sentencia de la consulta de conteo de registros
 			v_consulta:='WITH detalle as (
-                                       Select 
+                                       Select
                                         cd.id_cotizacion,
                                         sum(cd.cantidad_adju *cd.precio_unitario) as total_adjudicado,
                                         sum(cd.cantidad_coti *cd.precio_unitario) as total_cotizado,
@@ -164,7 +172,7 @@ BEGIN
                                       FROM  adq.tcotizacion_det  cd
                                       WHERE cd.estado_reg = ''activo''
                                       GROUP by cd.id_cotizacion
-                                      
+
                         )
                         SELECT count(cot.id_cotizacion)
 					    from adq.tcotizacion cot
@@ -175,19 +183,19 @@ BEGIN
 				        inner join param.tmoneda mon on mon.id_moneda = cot.id_moneda
                         inner join param.vproveedor pro on pro.id_proveedor = cot.id_proveedor
                         left join segu.tusuario usu2 on usu2.id_usuario = cot.id_usuario_mod
-                        
+
                         where '||v_filtro;
-			
-			--Definicion de la respuesta		    
+
+			--Definicion de la respuesta
 			v_consulta:=v_consulta||v_parametros.filtro;
 
 			--Devuelve la respuesta
 			return v_consulta;
 
 		end;
-        
-            
-    /*********************************    
+
+
+    /*********************************
  	#TRANSACCION:  'ADQ_COTPROC_SEL'
  	#DESCRIPCION:	Consulta de datos
  	#AUTOR:		Gonzalo Sarmiento Sejas
@@ -195,25 +203,25 @@ BEGIN
 	***********************************/
 
 	elsif(p_transaccion='ADQ_COTPROC_SEL')then
-     				
+
     	begin
-        
+
     		--Sentencia de la consulta
 			v_consulta:='select cot.id_cotizacion
                         from adq.tcotizacion cot
-                        inner join adq.tproceso_compra pc on pc.id_proceso_compra=cot.id_proceso_compra 
+                        inner join adq.tproceso_compra pc on pc.id_proceso_compra=cot.id_proceso_compra
                         where pc.id_proceso_compra='||v_parametros.id_proceso_compra||' and ';
-			
+
 			--Definicion de la respuesta
 			v_consulta:=v_consulta||v_parametros.filtro;
 			v_consulta:=v_consulta||' limit ' || v_parametros.cantidad || ' offset ' || v_parametros.puntero;
-			
+
 			--Devuelve la respuesta
 			return v_consulta;
-						
+
 		end;
-        
-     /*********************************    
+
+     /*********************************
  	#TRANSACCION:  'ADQ_OBPGCOT_SEL'
  	#DESCRIPCION:	Consulta de datos
  	#AUTOR:		Gonzalo Sarmiento Sejas
@@ -221,26 +229,26 @@ BEGIN
 	***********************************/
 
 	elsif(p_transaccion='ADQ_OBPGCOT_SEL')then
-     				
+
     	begin
-        
+
     		--Sentencia de la consulta
 			v_consulta:='select op.id_obligacion_pago
                         from adq.tcotizacion cot
                         inner join tes.tobligacion_pago op on op.id_obligacion_pago=cot.id_obligacion_pago
                         where cot.id_cotizacion='||v_parametros.id_cotizacion||' and ';
-			
+
 			--Definicion de la respuesta
 			v_consulta:=v_consulta||v_parametros.filtro;
 			v_consulta:=v_consulta||' limit ' || v_parametros.cantidad || ' offset ' || v_parametros.puntero;
-			
+
 			--Devuelve la respuesta
 			return v_consulta;
-						
-		end;   
-         
-    
-    /*********************************    
+
+		end;
+
+
+    /*********************************
  	#TRANSACCION:  'ADQ_COTRPC_SEL'
  	#DESCRIPCION:	Consulta de cotizaciones por estado dinamicos WF
  	#AUTOR:	     Rensi Arteaga Copari
@@ -248,92 +256,92 @@ BEGIN
 	***********************************/
 
 	elsif(p_transaccion='ADQ_COTRPC_SEL')then
-     				
+
     	begin
-        
-           
-            
-            
+
+
+
+
             v_add_filtro='';
-            
+
             if (v_parametros.id_funcionario_usu is null) then
-              	
+
                 v_parametros.id_funcionario_usu = -1;
-            
+
             end if;
-            
-           
+
+
             IF  lower(v_parametros.tipo_interfaz) = 'cotizacionvb' THEN
-                                        
-               
+
+
                 IF p_administrador != 1 THEN
-            
+
             	    v_add_filtro = '(cot.estado=''recomendado''  or  cot.estado=''adjudicado'') and  sol.id_funcionario_rpc = '||v_parametros.id_funcionario_rpc||'  and  ';
-                
-                ELSE 
+
+                ELSE
                     v_add_filtro='  (cot.estado=''recomendado''  or  cot.estado=''adjudicado'') and ';
-            
+
                 END IF;
-            
-            
-            
+
+
+
             END IF;
-            
-            
-            
+
+
+
             IF  lower(v_parametros.tipo_interfaz) = 'cotizacionvbdin' THEN
-            
-                       
+
+
                 IF p_administrador !=1 THEN
-                
-                             
+
+
                       v_add_filtro = '  ( ( (ew.id_funcionario='||v_parametros.id_funcionario_usu::varchar||' ) and  (lower(cot.estado)!=''borrador'') and  (lower(cot.estado)!=''recomendado'') and  (lower(cot.estado)!=''cotizado'') and  (lower(cot.estado)!=''adjudicado'') and  (lower(cot.estado)!=''pago_habilitado'')  and  (lower(cot.estado)!=''finalizado'') )  or    ((cot.estado=''recomendado''  or  cot.estado=''adjudicado'') and  sol.id_funcionario_rpc = '||v_parametros.id_funcionario_rpc||')) and ';
-                  
-                 
-                 
+
+
+
                  ELSE
                       v_add_filtro = ' (lower(cot.estado)!=''borrador'') and   (lower(cot.estado)!=''cotizado'') and  (lower(cot.estado)!=''pago_habilitado'')  and  (lower(cot.estado)!=''finalizado'') and ';
-                  
+
                 END IF;
-            
-            END IF; 
-            
-            
-            IF  pxp.f_existe_parametro(p_tabla,'historico') THEN
-             
-             v_historico =  v_parametros.historico;
-            
-            ELSE
-            
-            v_historico = 'no';
-            
+
             END IF;
-            
+
+
+            IF  pxp.f_existe_parametro(p_tabla,'historico') THEN
+
+             v_historico =  v_parametros.historico;
+
+            ELSE
+
+            v_historico = 'no';
+
+            END IF;
+
             IF v_historico =  'si' THEN
-            
+
                v_inner =  'inner join wf.testado_wf ew on ew.id_proceso_wf = cot.id_proceso_wf';
-               v_strg_cot = 'DISTINCT(cot.id_cotizacion)'; 
+               v_strg_cot = 'DISTINCT(cot.id_cotizacion)';
                IF p_administrador =1 THEN
                		v_add_filtro = ' (lower(cot.estado)!=''borrador'' ) and ';
                END IF;
-            
+
             ELSE
-            
+
                v_inner =  'inner join wf.testado_wf ew on ew.id_estado_wf = cot.id_estado_wf';
                v_strg_cot = 'cot.id_cotizacion';
-               
-               
+
+
              END IF;
-            
-            
-             
-            
+
+
+
+
             raise notice 'tipo interface %',v_parametros.tipo_interfaz;
-        
+
     		--Sentencia de la consulta
 			v_consulta:='
                           WITH detalle as (
-                                                     Select 
+                                                     Select
                                                       cd.id_cotizacion,
                                                       sum(cd.cantidad_adju *cd.precio_unitario) as total_adjudicado,
                                                       sum(cd.cantidad_coti *cd.precio_unitario) as total_cotizado,
@@ -342,9 +350,9 @@ BEGIN
                                                     WHERE cd.estado_reg = ''activo''
                                                     GROUP by cd.id_cotizacion
                                               )
-            
+
            				select
-                            '||v_strg_cot||',  
+                            '||v_strg_cot||',
                             cot.estado_reg,
                             cot.estado,
                             cot.lugar_entrega,
@@ -353,8 +361,8 @@ BEGIN
                             cot.numero_oc,
                             cot.id_proveedor,
                             pro.desc_proveedor,
-    						
-    						
+
+
                             cot.fecha_entrega,
                             cot.id_moneda,
                             mon.moneda,
@@ -363,7 +371,7 @@ BEGIN
                             cot.obs,
                             cot.fecha_adju,
                             cot.nro_contrato,
-    						
+
                             cot.fecha_reg,
                             cot.id_usuario_reg,
                             cot.fecha_mod,
@@ -391,9 +399,9 @@ BEGIN
 						left join segu.tusuario usu2 on usu2.id_usuario = cot.id_usuario_mod
 				        inner join param.tmoneda mon on mon.id_moneda = cot.id_moneda
                         inner join param.vproveedor pro on pro.id_proveedor = cot.id_proveedor
-                        '||v_inner||'   
+                        '||v_inner||'
                         where  '|| v_add_filtro ||' ';
-			
+
 			--Definicion de la respuesta
 			v_consulta:=v_consulta||v_parametros.filtro;
 			v_consulta:=v_consulta||' order by ' ||v_parametros.ordenacion|| ' ' || v_parametros.dir_ordenacion || ' limit ' || v_parametros.cantidad || ' offset ' || v_parametros.puntero;
@@ -402,10 +410,10 @@ BEGIN
 
 			--Devuelve la respuesta
 			return v_consulta;
-						
-		end;   
-    
-    /*********************************    
+
+		end;
+
+    /*********************************
  	#TRANSACCION:  'ADQ_COTRPC_CONT'
  	#DESCRIPCION:	Conteo de registros de la consulta de cotizaciones por RPC
  	#AUTOR:		    Rensi Arteaga Copari
@@ -415,88 +423,88 @@ BEGIN
 	elsif(p_transaccion='ADQ_COTRPC_CONT')then
 
 		begin
-        
-           
-        
+
+
+
             v_add_filtro='';
-            
+
             if (v_parametros.id_funcionario_usu is null) then
-              	
+
                 v_parametros.id_funcionario_usu = -1;
-            
+
             end if;
-            
-           
+
+
             IF  lower(v_parametros.tipo_interfaz) = 'cotizacionvb' THEN
-                                        
-               
+
+
                 IF p_administrador != 1 THEN
-            
+
             	    v_add_filtro = '(cot.estado=''recomendado''  or  cot.estado=''adjudicado'') and  sol.id_funcionario_rpc = '||v_parametros.id_funcionario_rpc||'  and  ';
-                
-                ELSE 
+
+                ELSE
                     v_add_filtro='  (cot.estado=''recomendado''  or  cot.estado=''adjudicado'') and ';
-            
+
                 END IF;
-            
-            
-            
+
+
+
             END IF;
-            
-                        
-            
-            
+
+
+
+
             IF  lower(v_parametros.tipo_interfaz) = 'cotizacionvbdin' THEN
-            
-                       
+
+
                 IF p_administrador !=1 THEN
-                
-                             
+
+
                       v_add_filtro = '  ( ( (ew.id_funcionario='||v_parametros.id_funcionario_usu::varchar||' ) and  (lower(cot.estado)!=''borrador'') and  (lower(cot.estado)!=''recomendado'') and  (lower(cot.estado)!=''cotizado'') and  (lower(cot.estado)!=''adjudicado'') and  (lower(cot.estado)!=''pago_habilitado'')  and  (lower(cot.estado)!=''finalizado'') )  or    ((cot.estado=''recomendado''  or  cot.estado=''adjudicado'') and  sol.id_funcionario_rpc = '||v_parametros.id_funcionario_rpc||')) and ';
-                  
-                 
-                 
+
+
+
                  ELSE
                       v_add_filtro = ' (lower(cot.estado)!=''borrador'') and   (lower(cot.estado)!=''cotizado'') and  (lower(cot.estado)!=''pago_habilitado'')  and  (lower(cot.estado)!=''finalizado'') and ';
-                  
+
                 END IF;
-            
+
             END IF;
-            
-            
+
+
             IF  pxp.f_existe_parametro(p_tabla,'historico') THEN
-             
+
              v_historico =  v_parametros.historico;
-            
+
             ELSE
-            
+
             v_historico = 'no';
-            
+
             END IF;
-            
+
             IF v_historico =  'si' THEN
-            
+
                v_inner =  'inner join wf.testado_wf ew on ew.id_proceso_wf = cot.id_proceso_wf';
-               v_strg_cot = 'DISTINCT(cot.id_cotizacion)'; 
-              
-               
+               v_strg_cot = 'DISTINCT(cot.id_cotizacion)';
+
+
                IF p_administrador =1 THEN
                		v_add_filtro = ' (lower(cot.estado)!=''borrador'' ) and ';
                END IF;
-            
+
             ELSE
-            
+
                v_inner =  'inner join wf.testado_wf ew on ew.id_estado_wf = cot.id_estado_wf';
                v_strg_cot = 'cot.id_cotizacion';
-               
-               
-             END IF;  
-        
-        
+
+
+             END IF;
+
+
 			--Sentencia de la consulta de conteo de registros
 			v_consulta:='
                          WITH detalle as (
-                                                     Select 
+                                                     Select
                                                       cd.id_cotizacion,
                                                       sum(cd.cantidad_adju *cd.precio_unitario) as total_adjudicado,
                                                       sum(cd.cantidad_coti *cd.precio_unitario) as total_cotizado,
@@ -516,19 +524,19 @@ BEGIN
                           inner join param.vproveedor pro on pro.id_proveedor = cot.id_proveedor
                           inner join wf.testado_wf ew on ew.id_estado_wf = cot.id_estado_wf
                           where (cot.estado=''recomendado''  or  cot.estado=''adjudicado'')  and '|| v_add_filtro ||' ';
-			--Definicion de la respuesta		    
+			--Definicion de la respuesta
 			v_consulta:=v_consulta||v_parametros.filtro;
 
 			--Devuelve la respuesta
 			return v_consulta;
 
 		end;
-        
-        
-    /*********************************    
+
+
+    /*********************************
  	#TRANSACCION:  'ADQ_COTREP_SEL'
  	#DESCRIPCION:	Consulta de registros para los reportes
- 	#AUTOR:		Gonzalo Sarmiento Sejas	
+ 	#AUTOR:		Gonzalo Sarmiento Sejas
  	#FECHA:		22-03-2013
 	***********************************/
 	elsif (p_transaccion='ADQ_COTREP_SEL')then
@@ -572,7 +580,7 @@ BEGIN
                         left join segu.tpersona per on per.id_persona=pv.id_persona
                         left join param.tinstitucion ins on ins.id_institucion=pv.id_institucion
                         where     cot.id_cotizacion='||v_parametros.id_cotizacion||' and ';
-                        
+
             --Definicion de la respuesta
 			v_consulta:=v_consulta||v_parametros.filtro;
 			v_consulta:=v_consulta||' order by ' ||v_parametros.ordenacion|| ' ' || v_parametros.dir_ordenacion || ' limit ' || v_parametros.cantidad || ' offset ' || v_parametros.puntero;
@@ -580,16 +588,16 @@ BEGIN
 			--Devuelve la respuesta
 			return v_consulta;
         end;
-        
-   /*********************************    
+
+   /*********************************
  	#TRANSACCION:  'ADQ_ESTCOT_SEL'
  	#DESCRIPCION:	Consulta de registros para los reportes
- 	#AUTOR:		Gonzalo Sarmiento Sejas	
+ 	#AUTOR:		Gonzalo Sarmiento Sejas
  	#FECHA:		31-04-2013
 	***********************************/
 	elsif (p_transaccion='ADQ_ESTCOT_SEL')then
     	begin
-        
+
         create temporary table flujo_cotizaciones(
         funcionario text,
         nombre text,
@@ -598,11 +606,11 @@ BEGIN
         id_tipo_estado int4,
         id_estado_wf int4,
         id_estado_anterior int4
-        ) on commit drop;   
-    
+        ) on commit drop;
+
     	--recupera el flujo de control de las cotizaciones
-        
-    	FOR v_cotizaciones IN( 
+
+    	FOR v_cotizaciones IN(
             select cot.id_estado_wf,cot.numero_oc, prv.desc_proveedor
             from adq.tcotizacion cot
             inner join param.vproveedor prv on prv.id_proveedor=cot.id_proveedor
@@ -612,11 +620,11 @@ BEGIN
         	   WITH RECURSIVE estados_solicitud(id_depto, id_proceso_wf, id_tipo_estado,id_estado_wf, id_estado_anterior, fecha_reg)AS(
                   SELECT et.id_depto, et.id_proceso_wf, et.id_tipo_estado, et.id_estado_wf, et.id_estado_anterior, et.fecha_reg
                   FROM wf.testado_wf et
-                  WHERE et.id_estado_wf=v_cotizaciones.id_estado_wf     
-               UNION ALL        
+                  WHERE et.id_estado_wf=v_cotizaciones.id_estado_wf
+               UNION ALL
                   SELECT et.id_depto, et.id_proceso_wf, et.id_tipo_estado, et.id_estado_wf, et.id_estado_anterior, et.fecha_reg
                   FROM wf.testado_wf et, estados_solicitud
-                  WHERE et.id_estado_wf=estados_solicitud.id_estado_anterior         
+                  WHERE et.id_estado_wf=estados_solicitud.id_estado_anterior
                )SELECT dep.nombre::text, tp.nombre||'-'||prv.desc_proveedor, te.nombre_estado, es.fecha_reg, es.id_tipo_estado, es.id_estado_wf, COALESCE(es.id_estado_anterior,NULL) as id_estado_anterior
                       FROM estados_solicitud es
                       INNER JOIN wf.ttipo_estado te on te.id_tipo_estado= es.id_tipo_estado
@@ -626,31 +634,51 @@ BEGIN
                       INNER JOIN param.vproveedor prv on prv.id_proveedor=cot.id_proveedor
                       INNER JOIN param.tdepto dep on dep.id_depto=es.id_depto
                       ORDER BY es.id_estado_wf ASC
-                      );      
+                      );
         END LOOP;
-        	
+
         	v_consulta:='select * from flujo_cotizaciones';
 			--Devuelve la respuesta
 			return v_consulta;
         end;
 
-	/*********************************    
+	/*********************************
  	#TRANSACCION:  'ADQ_COTOC_REP'
  	#DESCRIPCION:	Reporte Orden Compra
- 	#AUTOR:		Gonzalo Sarmiento Sejas	
+ 	#AUTOR:		Gonzalo Sarmiento Sejas
  	#FECHA:		08-04-2013
 	***********************************/
 	elsif(p_transaccion='ADQ_COTOC_REP')then
     	begin
+
+        --F.E.A(21/08/2017)
+        --begin
+        SELECT tc.num_tramite
+        INTO v_num_tramite
+        FROM adq.tcotizacion tc
+        WHERE tc.id_cotizacion = v_parametros.id_cotizacion;
+
+        SELECT ts.fecha_inicio
+        INTO v_fecha_inicio
+        FROM adq.tsolicitud ts
+        WHERE ts.num_tramite = v_num_tramite;
+
+        IF (v_fecha_inicio <= now()::date)THEN
+          UPDATE adq.tsolicitud SET
+              fecha_inicio = now()::date,
+              fecha_fin = now()::date + pxp.f_get_variable_global('dias_form_400')
+          WHERE num_tramite = v_num_tramite;
+        END IF;
+        --end
         IF  pxp.f_existe_parametro(p_tabla,'id_cotizacion') THEN
-             
+
                   v_filtro = 'cot.id_cotizacion='||v_parametros.id_cotizacion||' and ';
             ELSE
                   v_filtro = 'cot.id_proceso_wf='||v_parametros.id_proceso_wf||' and ';
-            
+
             END IF;
-            
-		v_consulta:='select  
+
+		v_consulta:='select
         			cot.id_cotizacion,
         			pv.desc_proveedor,
                     per.id_persona,
@@ -685,7 +713,7 @@ BEGIN
                     cot.forma_pago,
                     pc.objeto,
                     uo.codigo as codigo_uo
-              from adq.tcotizacion cot 
+              from adq.tcotizacion cot
               inner join param.vproveedor pv on pv.id_proveedor=cot.id_proveedor
               left join segu.tpersona per on per.id_persona=pv.id_persona
               left join param.tinstitucion ins on ins.id_institucion= pv.id_institucion
@@ -698,30 +726,182 @@ BEGIN
 		      inner join wf.ttipo_proceso tppc on tppc.id_tipo_proceso=pcwf.id_tipo_proceso
               inner join orga.tuo uo on uo.id_uo=sol.id_uo
               where '||v_filtro;
-          
+
           --Definicion de la respuesta
           v_consulta:=v_consulta||v_parametros.filtro;
           v_consulta:=v_consulta||' order by ' ||v_parametros.ordenacion|| ' ' || v_parametros.dir_ordenacion || ' limit ' || v_parametros.cantidad || ' offset ' || v_parametros.puntero;
-		  raise notice '%', v_consulta;	
+		  raise notice '%', v_consulta;
           --Devuelve la respuesta
           return v_consulta;
         end;
-        
-	
-        
-      
-					
-	
-    
-    
+    /*********************************
+ 	#TRANSACCION:  'ADQ_VERFORM_SEL'
+ 	#DESCRIPCION:  Lista todos los tramites que ya tienen form 500, conformidad y
+ 	#AUTOR:		Franklin Espinoza Alvarez
+ 	#FECHA:		08-06-2017
+	***********************************/
+	elsif(p_transaccion='ADQ_VERFORM_SEL')then
+    	begin
+
+          SELECT g.id_gestion
+          INTO v_id_gestion
+          FROM param.tgestion g
+          WHERE g.gestion = EXTRACT(YEAR FROM current_date);
+          --RAISE EXCEPTION 'A: %, B: %',v_parametros.tipo, v_parametros.pes_estado;
+          IF (v_parametros.tipo='Proceso')THEN
+              IF(v_parametros.pes_estado = 'form_400')THEN
+                  v_consulta = 'SELECT
+                                tc.id_cotizacion,
+                                tc.num_tramite,
+                                vf.desc_funcionario1::varchar as id_funcionario,
+                                CASE WHEN tpp.conformidad<>'''' THEN ''TIENE CONFORMIDAD''::varchar ELSE ''NO TIENE CONFORMIDAD''::varchar END,
+                                ''''::varchar AS tieneform500,
+                                tpp.nro_cuota,
+                                CASE WHEN tdw.chequeado = ''si'' THEN ''TIENE FORM 400''::VARCHAR ELSE ''NO TIENE EL FORM 400''::VARCHAR END AS tieneform400
+                                FROM adq.tcotizacion tc
+                                INNER JOIN wf.tdocumento_wf tdw ON tdw.id_proceso_wf = tc.id_proceso_wf
+                                INNER JOIN wf.ttipo_documento ttd ON ttd.id_tipo_documento = tdw.id_tipo_documento
+
+                                INNER JOIN tes.tobligacion_pago top ON top.num_tramite = tc.num_tramite
+                                INNER JOIN tes.tplan_pago tpp ON tpp.id_obligacion_pago = top.id_obligacion_pago
+                                INNER JOIN adq.tsolicitud ts ON ts.num_tramite = tc.num_tramite
+                                INNER JOIN orga.vfuncionario vf ON vf.id_funcionario = ts.id_funcionario
+                                WHERE tc.num_tramite = '''||v_parametros.nro_tramite||''' AND ts.id_gestion='||v_id_gestion||' AND tpp.es_ultima_cuota AND ';
+                  ELSE
+
+                  	v_consulta = 'SELECT
+                                tc.id_cotizacion,
+                                tc.num_tramite,
+                                vf.desc_funcionario1::varchar as id_funcionario,
+
+                                CASE WHEN tpp.conformidad<>'''' THEN ''TIENE CONFORMIDAD''::varchar ELSE ''NO TIENE CONFORMIDAD''::varchar END,
+                                CASE WHEN tdw.chequeado = ''si'' THEN ''TIENE FORM 500''::VARCHAR ELSE ''NO TIENE EL FORM 500''::VARCHAR END AS tieneform500,
+                                tpp.nro_cuota,
+                                ''''::varchar AS tieneform400
+                                FROM adq.tcotizacion tc
+                                INNER JOIN wf.tdocumento_wf tdw ON tdw.id_proceso_wf = tc.id_proceso_wf
+                                INNER JOIN wf.ttipo_documento ttd ON ttd.id_tipo_documento = tdw.id_tipo_documento
+
+                                INNER JOIN tes.tobligacion_pago top ON top.num_tramite = tc.num_tramite
+                                INNER JOIN tes.tplan_pago tpp ON tpp.id_obligacion_pago = top.id_obligacion_pago
+                                INNER JOIN adq.tsolicitud ts ON ts.num_tramite = tc.num_tramite
+                                INNER JOIN orga.vfuncionario vf ON vf.id_funcionario = ts.id_funcionario
+                                WHERE tc.num_tramite = '''||v_parametros.nro_tramite||''' AND ts.id_gestion='||v_id_gestion||' AND tpp.es_ultima_cuota AND ';
+                  END IF;
+
+           	v_consulta:=v_consulta||v_parametros.filtro;
+          	v_consulta:=v_consulta||' order by ' ||v_parametros.ordenacion|| ' ' || v_parametros.dir_ordenacion || ' limit 1 offset ' || v_parametros.puntero;
+          END IF;
+
+          IF(v_parametros.tipo='Todos')THEN
+          	IF(v_parametros.pes_estado = 'form_400')THEN
+                v_consulta = 'SELECT
+                              tc.id_cotizacion,
+                              tc.num_tramite,
+                              vf.desc_funcionario1::varchar as id_funcionario,
+                              CASE WHEN tpp.conformidad<>'''' THEN ''TIENE CONFORMIDAD''::varchar ELSE ''NO TIENE CONFORMIDAD''::varchar END,
+                              ''''::varchar AS tieneform500,
+                              tpp.nro_cuota,
+                              CASE WHEN tdw.chequeado = ''si'' THEN ''TIENE FORM 400''::VARCHAR ELSE ''NO TIENE EL FORM 400''::VARCHAR END AS tieneform400
+                              FROM adq.tcotizacion tc
+                              INNER JOIN wf.tdocumento_wf tdw ON tdw.id_proceso_wf = tc.id_proceso_wf
+                              INNER JOIN wf.ttipo_documento ttd ON ttd.id_tipo_documento = tdw.id_tipo_documento
+
+                              INNER JOIN tes.tobligacion_pago top ON top.num_tramite = tc.num_tramite
+                              INNER JOIN tes.tplan_pago tpp ON tpp.id_obligacion_pago = top.id_obligacion_pago
+                              INNER JOIN adq.tsolicitud ts ON ts.num_tramite = top.num_tramite
+                              INNER JOIN orga.vfuncionario vf ON vf.id_funcionario = ts.id_funcionario
+                              WHERE ts.id_gestion='||v_id_gestion||' AND tpp.estado_reg = ''activo'' AND tpp.es_ultima_cuota AND ';
+            ELSE
+            	v_consulta = 'SELECT
+                              tc.id_cotizacion,
+                              tc.num_tramite,
+                              vf.desc_funcionario1::varchar as id_funcionario,
+                              CASE WHEN tpp.conformidad<>'''' THEN ''TIENE CONFORMIDAD''::varchar ELSE ''NO TIENE CONFORMIDAD''::varchar END,
+                              CASE WHEN tdw.chequeado = ''si'' THEN ''TIENE FORM 500''::varchar ELSE ''NO TIENE EL FORM 500''::varchar END AS tieneform500,
+                              tpp.nro_cuota,
+                              ''''::varchar AS tieneform400
+                              FROM adq.tcotizacion tc
+                              INNER JOIN wf.tdocumento_wf tdw ON tdw.id_proceso_wf = tc.id_proceso_wf
+                              INNER JOIN wf.ttipo_documento ttd ON ttd.id_tipo_documento = tdw.id_tipo_documento
+                              INNER JOIN tes.tobligacion_pago top ON top.num_tramite = tc.num_tramite
+                              INNER JOIN tes.tplan_pago tpp ON tpp.id_obligacion_pago = top.id_obligacion_pago
+                              INNER JOIN adq.tsolicitud ts ON ts.num_tramite = top.num_tramite
+                              INNER JOIN orga.vfuncionario vf ON vf.id_funcionario = ts.id_funcionario
+                              WHERE ts.id_gestion='||v_id_gestion||' AND tpp.estado_reg = ''activo'' AND tpp.es_ultima_cuota AND ';
+            END IF;
+          	--Definicion de la respuesta
+          	v_consulta:=v_consulta||v_parametros.filtro;
+          	v_consulta:=v_consulta||' order by ' ||v_parametros.ordenacion|| ' ' || v_parametros.dir_ordenacion || ' limit ' || v_parametros.cantidad || ' offset ' || v_parametros.puntero;
+          END IF;
+
+
+
+		  raise notice 'CONSULTA: %', v_consulta;
+          --Devuelve la respuesta
+          return v_consulta;
+        end;
+    /*********************************
+ 	#TRANSACCION:  'ADQ_VERFORM_CONT'
+ 	#DESCRIPCION:	Conteo de registros
+ 	#AUTOR:		FRANKLIN ESPINOZA A.
+ 	#FECHA:		08-06-2017
+	***********************************/
+
+	elsif(p_transaccion='ADQ_VERFORM_CONT')then
+
+		BEGIN
+        SELECT g.id_gestion
+          INTO v_id_gestion
+          FROM param.tgestion g
+          WHERE g.gestion = EXTRACT(YEAR FROM current_date);
+        IF (v_parametros.tipo='Proceso')THEN
+           --Sentencia de la consulta de conteo de registros
+			v_consulta:='SELECT count(tc.id_cotizacion)
+            			  FROM adq.tcotizacion tc
+                          INNER JOIN wf.tdocumento_wf tdw ON tdw.id_proceso_wf = tc.id_proceso_wf
+            			  INNER JOIN wf.ttipo_documento ttd ON ttd.id_tipo_documento = tdw.id_tipo_documento
+
+                          INNER JOIN tes.tobligacion_pago top ON top.num_tramite = tc.num_tramite
+                          INNER JOIN tes.tplan_pago tpp ON tpp.id_obligacion_pago = top.id_obligacion_pago
+                          INNER JOIN adq.tsolicitud ts ON ts.num_tramite = tc.num_tramite
+                          INNER JOIN orga.vfuncionario vf ON vf.id_funcionario = ts.id_funcionario
+                          WHERE  tc.num_tramite = '''||v_parametros.nro_tramite||''' AND ts.id_gestion='||v_id_gestion||' AND tpp.es_ultima_cuota AND ';
+            v_consulta:=v_consulta||v_parametros.filtro;
+            v_consulta = v_consulta||' group by tc.id_cotizacion ';
+          	v_consulta:=v_consulta||' order by ' ||v_parametros.ordenacion|| ' ' || v_parametros.dir_ordenacion || ' limit 1 offset ' || v_parametros.puntero;
+		END IF;
+
+        IF(v_parametros.tipo='Todos')THEN
+        	v_consulta:='SELECT
+            				count(tc.id_cotizacion)
+        	  			  FROM adq.tcotizacion tc
+                          INNER JOIN wf.tdocumento_wf tdw ON tdw.id_proceso_wf = tc.id_proceso_wf
+            			  INNER JOIN wf.ttipo_documento ttd ON ttd.id_tipo_documento = tdw.id_tipo_documento
+                          INNER JOIN tes.tobligacion_pago top ON top.num_tramite = tc.num_tramite
+                          INNER JOIN tes.tplan_pago tpp ON tpp.id_obligacion_pago = top.id_obligacion_pago
+                          INNER JOIN adq.tsolicitud ts ON ts.num_tramite = top.num_tramite
+                          INNER JOIN orga.vfuncionario vf ON vf.id_funcionario = ts.id_funcionario
+                          WHERE ts.id_gestion='||v_id_gestion||' AND tpp.estado_reg = ''activo'' AND tpp.es_ultima_cuota AND ';
+
+            v_consulta:=v_consulta||v_parametros.filtro;
+            v_consulta = v_consulta||' group by tc.id_cotizacion ';
+          	v_consulta:=v_consulta||' order by ' ||v_parametros.ordenacion|| ' ' || v_parametros.dir_ordenacion || ' limit ' || v_parametros.cantidad || ' offset ' || v_parametros.puntero;
+		END IF;
+
+		--Devuelve la respuesta
+		return v_consulta;
+
+		END;
+
     else
-					     
+
 		raise exception 'Transaccion inexistente';
-					         
+
 	end if;
-					
+
 EXCEPTION
-					
+
 	WHEN OTHERS THEN
 			v_resp='';
 			v_resp = pxp.f_agrega_clave(v_resp,'mensaje',SQLERRM);

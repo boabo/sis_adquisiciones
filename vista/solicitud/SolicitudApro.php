@@ -381,12 +381,13 @@ Phx.vista.SolicitudApro = {
                         anchor: '90%',
                         //width: 350,
                         height:100,
-                        maxLength:450
+                        maxLength:1000
                     },
                     {
                         xtype: 'textfield',
                         name: 'codigo_proceso',
                         fieldLabel: 'Código Proceso',
+                        hidden:true,
                         allowBlank: true,
                         anchor: '80%',
                         gwidth: 100,
@@ -396,6 +397,7 @@ Phx.vista.SolicitudApro = {
                         xtype: 'datefield',
                         name: 'fecha_ini_proc',
                         fieldLabel: 'Fecha Inicio',
+                        hidden:true,
                         allowBlank: false,
                         anchor: '80%',
                         gwidth: 100,
@@ -417,6 +419,7 @@ Phx.vista.SolicitudApro = {
                         xtype: 'textarea',
                         name: 'objeto',
                         fieldLabel: 'Objeto',
+                         hidden:true,
                         allowBlank: true,
                         anchor: '90%',
                         width: 350,
@@ -578,7 +581,7 @@ Phx.vista.SolicitudApro = {
             this.cmb_id_depto_usuario_proc.store.baseParams.id_depto = d.id_depto;
             this.cmb_id_depto_usuario_proc.modificado = true;
             this.cmbFechaProc.setValue(new Date());
-            
+
             
         }
          

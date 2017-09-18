@@ -701,18 +701,19 @@ CREATE TABLE adq.tinformacion_secundaria (
   estado_reg VARCHAR(10) DEFAULT 'activo'::character varying, 
   id_usuario_ai INTEGER, 
   usuario_ai VARCHAR(300), 
-  id_informacion_sec INTEGER DEFAULT nextval('adq.tinforme_especificacion_id_informe_especificacion_seq'::regclass) NOT NULL, 
+  id_informacion_sec SERIAL NOT NULL,
   id_solicitud INTEGER, 
   nro_cite VARCHAR(25), 
   antecedentes TEXT, 
   necesidad_contra TEXT, 
   beneficios_contra TEXT, 
   resultados TEXT, 
-  concluciones_r TEXT, 
+  concluciones TEXT,
   validez_oferta TEXT, 
   garantias TEXT, 
   multas TEXT, 
-  forma_pago TEXT, 
+  forma_pago TEXT,
+  recomendaciones TEXT,
   CONSTRAINT tinforme_especificacion_pkey PRIMARY KEY(id_informacion_sec)
 ) INHERITS (pxp.tbase)
 ;
@@ -792,5 +793,4 @@ ALTER TABLE adq.tcotizacion
 
 
   
-/***********************************F-SCP-RAC-ADQ-0-27/07/2017****************************************/  
-  
+/***********************************F-SCP-RAC-ADQ-0-27/07/2017****************************************/

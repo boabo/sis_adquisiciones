@@ -237,7 +237,7 @@ Phx.vista.SolicitudVb = {
                                     fieldLabel: 'Nro. de P.O.',
                                     qtip:'Ingrese el nro. de P.O.',
                                     allowBlank: true,
-                                    disabled: true,
+                                    disabled: false,
                                     anchor: '47%',
                                     gwidth: 100,
                                     maxLength:255,
@@ -254,7 +254,7 @@ Phx.vista.SolicitudVb = {
                                     name: 'fecha_po',
                                     fieldLabel: 'Fecha de P.O.',
                                     qtip:'Fecha del P.O.',
-                                    allowBlank: false,
+                                    allowBlank: true,
                                     width: 188,
                                     gwidth: 100,
                                     value: rec.data.fecha_po || new Date() ,
@@ -373,11 +373,10 @@ Phx.vista.SolicitudVb = {
                                     scope:this
                                  });
         /*Ext.getCmp(this.objWizard).autoLoad.params.configExtra[1].value = 'Bolivia';
-        console.log('sexo',(Ext.getCmp(this.objWizard).autoLoad.params.configExtra[1]))*/
-        //Ext.getCmp(this.objWizard).autoload.params.configExtra[1].config.name.setValue('sexo');
+        console.log('otros',(Ext.getCmp(this.objWizard).autoLoad.params.configExtra[1]))*/
+        //Ext.getCmp(this.objWizard).autoload.params.configExtra[1].config.name.setValue('otros');
      },
     onSaveWizard:function(wizard,resp){
-        console.log('wizard',wizard,'resp',resp);
         Phx.CP.loadingShow();
 
         Ext.Ajax.request({

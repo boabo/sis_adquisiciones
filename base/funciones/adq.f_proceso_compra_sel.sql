@@ -12,13 +12,13 @@ $body$
  DESCRIPCION:   Funcion que devuelve conjuntos de registros de las consultas relacionadas con la tabla 'adq.tproceso_compra'
  AUTOR: 		 (admin)
  FECHA:	        19-03-2013 12:55:30
- COMENTARIOS:	
+ COMENTARIOS:
 ***************************************************************************
  HISTORIAL DE MODIFICACIONES:
 
- DESCRIPCION:	
- AUTOR:			
- FECHA:		
+ DESCRIPCION:
+ AUTOR:
+ FECHA:
 ***************************************************************************/
 
 DECLARE
@@ -27,11 +27,18 @@ DECLARE
 	v_parametros  		record;
 	v_nombre_funcion   	text;
 	v_resp				varchar;
-    
+
     v_filadd 			varchar;
-    
+
     va_id_depto integer[];
     v_filtro			varchar;
+
+    --variables para filtrar formulario 400 (f.e.a)
+    v_cadena_form400	varchar;
+    v_nom_fun_resp		varchar;
+    v_id_usuario	integer;
+    v_rec_func			record;
+    v_id_gestion		integer;
 
 BEGIN
 
@@ -635,15 +642,403 @@ BEGIN
 			  --Devuelve la respuesta
 			   return v_consulta;
       END;
+    /*********************************
+ 	#TRANSACCION:  'ADQ_FORM_400_SEL'
+ 	#DESCRIPCION:	Obtiene detalle del formulario 400 de todos los proceso y se aplican diferentes filtros
+ 	#AUTOR:		FRANKLIN ESPINOZA A.
+ 	#FECHA:		18-08-2017
+	***********************************/
+    ELSIF (p_transaccion='ADQ_FORM_400_SEL')THEN
+    	BEGIN
+            SELECT g.id_gestion
+            INTO v_id_gestion
+            FROM param.tgestion g
+            WHERE g.gestion = EXTRACT(YEAR FROM current_date);
 
+
+            SELECT vfcl.desc_funcionario1
+            INTO v_nom_fun_resp
+            FROM segu.tusuario tu
+            INNER JOIN orga.tfuncionario tf on tf.id_persona = tu.id_persona
+            INNER JOIN orga.vfuncionario vfcl on vfcl.id_funcionario = tf.id_funcionario
+            WHERE tu.id_usuario = p_id_usuario;
+
+            /*IF(p_administrador=1)THEN
+            	v_join = '';
+            ELSE
+            	v_join =
+            END IF;*/
+
+            v_consulta = 'SELECT
+            				tc.id_cotizacion,
+                            tc.id_proceso_wf,
+                            tc.id_estado_wf,
+                            tc.estado,
+                            tc.num_tramite,
+                            vf.desc_funcionario1::varchar AS fun_solicitante,
+                            '''||v_nom_fun_resp||'''::varchar AS fun_resp,
+                            CASE WHEN tdw.chequeado = ''si'' THEN ''TIENE FORM 400''::varchar ELSE ''NO TIENE EL FORM 400''::varchar END AS tieneform400,
+                            (ts.fecha_fin-now()::date)::integer AS dias_form_400,
+                            ts.fecha_inicio,
+                            ts.fecha_fin
+            			  FROM adq.tcotizacion tc
+                            INNER JOIN wf.tdocumento_wf tdw ON tdw.id_proceso_wf = tc.id_proceso_wf
+                            INNER JOIN wf.ttipo_documento ttd ON ttd.id_tipo_documento = tdw.id_tipo_documento
+                            INNER JOIN adq.tsolicitud ts ON ts.num_tramite = tc.num_tramite
+                            INNER JOIN adq.tproceso_compra tpc ON tpc.num_tramite = tc.num_tramite
+                            INNER JOIN orga.vfuncionario vf ON vf.id_funcionario = ts.id_funcionario
+                          WHERE tdw.momento IN (''exigir'',''verificar'') AND ttd.codigo = ''FORM400'' AND
+                          tpc.estado = ''proceso'' AND tc.estado <> ''anulado'' AND
+                          ts.id_gestion = '||v_id_gestion||' AND ';
+			  --Definicion de la respuesta
+          	v_consulta:=v_consulta||v_parametros.filtro;
+          	v_consulta:=v_consulta||' order by ' ||v_parametros.ordenacion|| ' ' || v_parametros.dir_ordenacion || ' limit ' || v_parametros.cantidad || ' offset ' || v_parametros.puntero;
+                raise notice 'consulta: %',v_consulta;
+
+			  --Devuelve la respuesta
+			  return v_consulta;
+      END;
+    /*********************************
+ 	#TRANSACCION:  'ADQ_FORM_400_CONT'
+ 	#DESCRIPCION:	Conteo de registros
+ 	#AUTOR:		FRANKLIN ESPINOZA A.
+ 	#FECHA:		18-08-2017
+	***********************************/
+
+	elsif(p_transaccion='ADQ_FORM_400_CONT')then
+
+		BEGIN
+        	SELECT g.id_gestion
+            INTO v_id_gestion
+            FROM param.tgestion g
+            WHERE g.gestion = EXTRACT(YEAR FROM current_date);
+
+           --Sentencia de la consulta de conteo de registros
+			v_consulta:='SELECT
+            				count(tc.id_cotizacion)
+            			  FROM adq.tcotizacion tc
+     						INNER JOIN wf.tdocumento_wf tdw ON tdw.id_proceso_wf = tc.id_proceso_wf
+                            INNER JOIN wf.ttipo_documento ttd ON ttd.id_tipo_documento = tdw.id_tipo_documento
+                            INNER JOIN adq.tsolicitud ts ON ts.num_tramite = tc.num_tramite
+                            INNER JOIN adq.tproceso_compra tpc ON tpc.num_tramite = tc.num_tramite
+                            INNER JOIN orga.vfuncionario vf ON vf.id_funcionario = ts.id_funcionario
+                          WHERE tdw.momento IN (''exigir'',''verificar'') AND ttd.codigo = ''FORM400'' AND
+                          tpc.estado = ''proceso'' AND tc.estado <> ''anulado'' AND
+                          ts.id_gestion = '||v_id_gestion||'  AND ';
+
+			--Definicion de la respuesta
+			v_consulta:=v_consulta||v_parametros.filtro;
+
+			--Devuelve la respuesta
+			return v_consulta;
+			--Devuelve la respuesta
+			return v_consulta;
+
+		END;
+    /*********************************
+ 	#TRANSACCION:  'ADQ_FORM_500_SEL'
+ 	#DESCRIPCION:	Obtiene detalle del formulario 500 de todos los proceso y se aplican diferentes filtros
+ 	#AUTOR:		FRANKLIN ESPINOZA A.
+ 	#FECHA:		18-08-2017
+	***********************************/
+    ELSIF (p_transaccion='ADQ_FORM_500_SEL')THEN
+    	BEGIN
+
+        	SELECT g.id_gestion
+            INTO v_id_gestion
+            FROM param.tgestion g
+            WHERE g.gestion = EXTRACT(YEAR FROM current_date);
+
+            SELECT vfcl.desc_funcionario1
+            INTO v_nom_fun_resp
+            FROM segu.tusuario tu
+            INNER JOIN orga.tfuncionario tf on tf.id_persona = tu.id_persona
+            INNER JOIN orga.vfuncionario vfcl on vfcl.id_funcionario = tf.id_funcionario
+            WHERE tu.id_usuario = p_id_usuario;
+
+            v_consulta = 'SELECT
+            				tc.id_cotizacion,
+            				tc.id_proceso_wf,
+                            tc.id_estado_wf,
+                            tc.estado,
+                            tc.num_tramite,
+                            vf.desc_funcionario1::varchar AS fun_solicitante,
+                            '''||v_nom_fun_resp||'''::varchar AS fun_resp,
+                            CASE WHEN tdw.chequeado = ''si'' THEN ''TIENE FORM 500''::varchar ELSE ''NO TIENE EL FORM 500''::varchar END AS tieneform500,
+                            CASE WHEN tpp.conformidad<>'''' THEN ''TIENE CONFORMIDAD''::varchar ELSE ''NO TIENE CONFORMIDAD''::varchar END AS conformidad,
+                            tpp.nro_cuota,
+                            (ts.fecha_fin-now()::date)::integer AS dias_form_500,
+                            ts.fecha_inicio,
+                            ts.fecha_fin,
+                            tpp.fecha_conformidad
+            			  FROM adq.tcotizacion tc
+                          	INNER JOIN adq.tproceso_compra tpc ON tpc.num_tramite = tc.num_tramite
+                            INNER JOIN wf.tdocumento_wf tdw ON tdw.id_proceso_wf = tc.id_proceso_wf
+                            INNER JOIN wf.ttipo_documento ttd ON ttd.id_tipo_documento = tdw.id_tipo_documento
+                            INNER JOIN tes.tobligacion_pago top ON top.num_tramite = tc.num_tramite
+                            INNER JOIN tes.tplan_pago tpp ON tpp.id_obligacion_pago = top.id_obligacion_pago
+                            INNER JOIN adq.tsolicitud ts ON ts.num_tramite = tc.num_tramite
+                            INNER JOIN orga.vfuncionario vf ON vf.id_funcionario = ts.id_funcionario
+                          WHERE tdw.momento= ''exigir'' and ttd.codigo = ''FORM500'' and ts.id_gestion = '||v_id_gestion||' and tpp.estado_reg = ''activo'' AND tpp.es_ultima_cuota AND tc.estado<>''anulado'' AND ';
+				  --Definicion de la respuesta
+          	v_consulta:=v_consulta||v_parametros.filtro;
+          	v_consulta:=v_consulta||' order by ' ||v_parametros.ordenacion|| ' ' || v_parametros.dir_ordenacion || ' limit ' || v_parametros.cantidad || ' offset ' || v_parametros.puntero;
+            raise notice 'consulta: %',v_consulta;
+
+			--Devuelve la respuesta
+			return v_consulta;
+      END;
+    /*********************************
+ 	#TRANSACCION:  'ADQ_FORM_500_CONT'
+ 	#DESCRIPCION:	Conteo de registros
+ 	#AUTOR:		FRANKLIN ESPINOZA A.
+ 	#FECHA:		18-08-2017
+	***********************************/
+
+	elsif(p_transaccion='ADQ_FORM_500_CONT')then
+
+		BEGIN
+        	SELECT g.id_gestion
+            INTO v_id_gestion
+            FROM param.tgestion g
+            WHERE g.gestion = EXTRACT(YEAR FROM current_date);
+           --Sentencia de la consulta de conteo de registros
+			v_consulta:='SELECT
+            				count(tc.id_cotizacion)
+            			  FROM adq.tcotizacion tc
+                            INNER JOIN adq.tproceso_compra tpc ON tpc.num_tramite = tc.num_tramite
+                            INNER JOIN wf.tdocumento_wf tdw ON tdw.id_proceso_wf = tc.id_proceso_wf
+                            INNER JOIN wf.ttipo_documento ttd ON ttd.id_tipo_documento = tdw.id_tipo_documento
+                            INNER JOIN tes.tobligacion_pago top ON top.num_tramite = tc.num_tramite
+                            INNER JOIN tes.tplan_pago tpp ON tpp.id_obligacion_pago = top.id_obligacion_pago
+                            INNER JOIN orga.vfuncionario vf ON vf.id_funcionario = top.id_funcionario
+                            INNER JOIN adq.tsolicitud ts ON ts.num_tramite = tc.num_tramite
+                          WHERE tdw.momento= ''exigir'' and ttd.codigo = ''FORM500'' and ts.id_gestion = '||v_id_gestion||' and tpp.estado_reg = ''activo'' AND tpp.es_ultima_cuota AND tc.estado<>''anulado'' AND ';
+
+			--Definicion de la respuesta
+			v_consulta:=v_consulta||v_parametros.filtro;
+
+			--Devuelve la respuesta
+			return v_consulta;
+
+		END;
+      /*********************************
+ 	#TRANSACCION:   'ADQ_ALERT_FORM_4_5'
+ 	#DESCRIPCION:	 Verifica los procesos que tienen form 400 que estan dentro del plazo de vencimiento que es variable global form_dias_400.
+ 	#AUTOR:		Franklin Espinoza A.
+ 	#FECHA:		21-08-2017
+	***********************************/
+
+    elsif(p_transaccion='ADQ_ALERT_FORM_4_5')then
+
+      begin
+
+        SELECT tf.id_funcionario, vfcl.desc_funcionario1
+        INTO v_rec_func
+        FROM segu.tusuario tu
+        INNER JOIN orga.tfuncionario tf on tf.id_persona = tu.id_persona
+        INNER JOIN orga.vfuncionario vfcl on vfcl.id_funcionario = tf.id_funcionario
+        WHERE tu.id_usuario = p_id_usuario ;
+
+        --Obtenemos la gestion
+        SELECT g.id_gestion
+        into v_id_gestion
+        from param.tgestion g
+        where g.gestion = EXTRACT(YEAR FROM current_date);
+
+        v_resp = 'SELECT
+            				tpc.id_usuario_auxiliar AS id_usuario,
+                            tc.estado,
+                            tc.num_tramite,
+                            vf.desc_funcionario1::varchar AS fun_solicitante,
+                            CASE WHEN tdw.chequeado = ''si'' THEN ''TIENE FORM 400''::varchar ELSE ''NO TIENE EL FORM 400''::varchar END AS tieneform400,
+                            (ts.fecha_fin-now()::date)::integer AS dias_form_400,
+                            ts.fecha_inicio,
+                            ts.fecha_fin,
+                            (''(''||td.nombre_corto ||'') - ''|| td.nombre)::varchar AS desc_depto,
+                            '''||v_rec_func.desc_funcionario1||'''::varchar AS fun_responsable ,
+                            '''||pxp.f_get_variable_global('dias_form_400')||'''::varchar AS plazo_dias
+            			  FROM adq.tcotizacion tc
+                            INNER JOIN wf.tdocumento_wf tdw ON tdw.id_proceso_wf = tc.id_proceso_wf
+                            INNER JOIN wf.ttipo_documento ttd ON ttd.id_tipo_documento = tdw.id_tipo_documento
+                            INNER JOIN adq.tsolicitud ts ON ts.num_tramite = tc.num_tramite
+                            INNER JOIN adq.tproceso_compra tpc ON tpc.num_tramite = tc.num_tramite
+                            INNER JOIN param.tdepto td ON td.id_depto = tpc.id_depto
+                            INNER JOIN orga.vfuncionario vf ON vf.id_funcionario = ts.id_funcionario
+                          WHERE tpc.id_usuario_auxiliar = '||p_id_usuario||' AND tdw.momento= ''exigir'' AND tdw.chequeado = ''no'' AND ttd.codigo = ''FORM400'' AND ts.id_gestion = '||v_id_gestion||' ORDER BY dias_form_400 ASC ';--select 75 AS id_usuario
+
+
+        --Devuelve la respuesta
+        raise notice 'v_resp: %', v_resp;
+        return v_resp;
+
+      end;
+    /*********************************
+ 	#TRANSACCION:   'ADQ_ALERT_FORM_5'
+ 	#DESCRIPCION:	 Verifica los procesos que no tienen form 500 que estan dentro del plazo de vencimiento que es variable global form_dias_500.
+ 	#AUTOR:		Franklin Espinoza A.
+ 	#FECHA:		21-08-2017
+	***********************************/
+
+    elsif(p_transaccion='ADQ_ALERT_FORM_5')then
+
+      begin
+
+        SELECT tf.id_funcionario, vfcl.desc_funcionario1
+        INTO v_rec_func
+        FROM segu.tusuario tu
+        INNER JOIN orga.tfuncionario tf on tf.id_persona = tu.id_persona
+        INNER JOIN orga.vfuncionario vfcl on vfcl.id_funcionario = tf.id_funcionario
+        WHERE tu.id_usuario = p_id_usuario ;
+
+        --Obtenemos la gestion
+        SELECT g.id_gestion
+        into v_id_gestion
+        from param.tgestion g
+        where g.gestion = EXTRACT(YEAR FROM current_date);
+
+        v_resp = 'SELECT
+            				tpc.id_usuario_auxiliar AS id_usuario,
+                            tc.estado,
+                            tc.num_tramite,
+                            vf.desc_funcionario1::varchar AS fun_solicitante,
+                            '''||v_rec_func.desc_funcionario1||'''::varchar AS fun_responsable,
+                            (''(''||td.nombre_corto ||'') - ''|| td.nombre)::varchar AS desc_depto,
+                            CASE WHEN tdw.chequeado = ''si'' THEN ''TIENE FORM 500''::varchar ELSE ''NO TIENE EL FORM 500''::varchar END AS tieneform500,
+                            CASE WHEN tpp.conformidad<>'''' THEN ''TIENE CONFORMIDAD''::varchar ELSE ''NO TIENE CONFORMIDAD''::varchar END AS conformidad,
+                            (ts.fecha_fin-now()::date)::integer AS dias_form_500,
+                            ts.fecha_inicio,
+                            ts.fecha_fin,
+                            '''||pxp.f_get_variable_global('dias_form_500')||'''::varchar AS plazo_dias
+            			  FROM adq.tcotizacion tc
+                            INNER JOIN wf.tdocumento_wf tdw ON tdw.id_proceso_wf = tc.id_proceso_wf
+                            INNER JOIN wf.ttipo_documento ttd ON ttd.id_tipo_documento = tdw.id_tipo_documento
+                            INNER JOIN tes.tobligacion_pago top ON top.num_tramite = tc.num_tramite
+                            INNER JOIN tes.tplan_pago tpp ON tpp.id_obligacion_pago = top.id_obligacion_pago
+                            INNER JOIN adq.tsolicitud ts ON ts.num_tramite = tc.num_tramite
+                            INNER JOIN adq.tproceso_compra tpc ON tpc.num_tramite = tc.num_tramite
+                            INNER JOIN param.tdepto td ON td.id_depto = tpc.id_depto
+                            INNER JOIN orga.vfuncionario vf ON vf.id_funcionario = ts.id_funcionario
+                          WHERE tpc.id_usuario_auxiliar = '||p_id_usuario||' AND tdw.momento= ''exigir'' AND tdw.chequeado = ''no'' AND ttd.codigo = ''FORM500'' AND ts.id_gestion = '||v_id_gestion||' AND tc.estado<>''anulado'' AND tpp.es_ultima_cuota ORDER BY dias_form_500 ASC ';
+
+		raise notice 'v_resp: %',v_resp;
+        --Devuelve la respuesta
+        return v_resp;
+
+      end;
+      /*********************************
+ 	#TRANSACCION:   'ADQ_PEN_FORM400_REP'
+ 	#DESCRIPCION:	 Verifica los procesos que no tienen form 400 que estan dentro del plazo de vencimiento que son 15 dias.
+ 	#AUTOR:		Franklin Espinoza A.
+ 	#FECHA:		21-08-2017
+	***********************************/
+
+    elsif(p_transaccion='ADQ_PEN_FORM400_REP')then
+
+      begin
+        v_id_usuario = coalesce(v_parametros.id_usuario, p_id_usuario);
+
+		SELECT tf.id_funcionario, vfcl.desc_funcionario1
+        INTO v_rec_func
+        FROM segu.tusuario tu
+        INNER JOIN orga.tfuncionario tf on tf.id_persona = tu.id_persona
+        INNER JOIN orga.vfuncionario vfcl on vfcl.id_funcionario = tf.id_funcionario
+        WHERE tu.id_usuario = v_id_usuario;
+        --Obtenemos la gestion
+        SELECT g.id_gestion
+        into v_id_gestion
+        from param.tgestion g
+        where g.gestion = EXTRACT(YEAR FROM current_date);
+
+        v_resp = 'SELECT
+            				tpc.id_usuario_auxiliar AS id_usuario,
+                            tc.estado,
+                            tc.num_tramite,
+                            vf.desc_funcionario1::varchar AS fun_solicitante,
+                            CASE WHEN tdw.chequeado = ''si'' THEN ''TIENE FORM 400''::varchar ELSE ''NO TIENE EL FORM 400''::varchar END AS tieneform400,
+                            (ts.fecha_fin-now()::date)::integer AS dias_form_400,
+                            ts.fecha_inicio,
+                            ts.fecha_fin,
+                            (''(''||td.nombre_corto ||'') - ''|| td.nombre)::varchar AS desc_depto,
+                            '''||v_rec_func.desc_funcionario1||'''::varchar AS fun_responsable,
+                            '''||pxp.f_get_variable_global('dias_form_400')||'''::varchar AS plazo_dias
+            			  FROM adq.tcotizacion tc
+                            INNER JOIN wf.tdocumento_wf tdw ON tdw.id_proceso_wf = tc.id_proceso_wf
+                            INNER JOIN wf.ttipo_documento ttd ON ttd.id_tipo_documento = tdw.id_tipo_documento
+                            INNER JOIN adq.tsolicitud ts ON ts.num_tramite = tc.num_tramite
+                            INNER JOIN adq.tproceso_compra tpc ON tpc.num_tramite = tc.num_tramite
+                            INNER JOIN param.tdepto td ON td.id_depto = tpc.id_depto
+                            INNER JOIN orga.vfuncionario vf ON vf.id_funcionario = ts.id_funcionario
+                          WHERE tpc.id_usuario_auxiliar = '||v_id_usuario||' AND tdw.momento= ''exigir'' AND tdw.chequeado = ''no'' AND ttd.codigo = ''FORM400'' AND ts.id_gestion = '||v_id_gestion||' AND tc.estado<>''anulado'' ORDER BY dias_form_400 ASC ';
+
+		raise notice 'v_resp: %',v_resp;
+        --Devuelve la respuesta
+        return v_resp;
+
+      end;
+      /*********************************
+ 	#TRANSACCION:   'ADQ_PEN_FORM500_REP'
+ 	#DESCRIPCION:	 Verifica los procesos que no tienen form 500 que estan dentro del plazo de vencimiento que son 15 dias.
+ 	#AUTOR:		Franklin Espinoza A.
+ 	#FECHA:		21-08-2017
+	***********************************/
+
+    elsif(p_transaccion='ADQ_PEN_FORM500_REP')then
+
+      begin
+
+        v_id_usuario = coalesce(v_parametros.id_usuario, p_id_usuario);
+
+        SELECT tf.id_funcionario, vfcl.desc_funcionario1
+        INTO v_rec_func
+        FROM segu.tusuario tu
+        INNER JOIN orga.tfuncionario tf on tf.id_persona = tu.id_persona
+        INNER JOIN orga.vfuncionario vfcl on vfcl.id_funcionario = tf.id_funcionario
+        WHERE tu.id_usuario = p_id_usuario ;
+
+        --Obtenemos la gestion
+        SELECT g.id_gestion
+        into v_id_gestion
+        from param.tgestion g
+        where g.gestion = EXTRACT(YEAR FROM current_date);
+
+        v_resp = 'SELECT
+            				tpc.id_usuario_auxiliar AS id_usuario,
+                            tc.estado,
+                            tc.num_tramite,
+                            vf.desc_funcionario1::varchar AS fun_solicitante,
+                            '''||v_rec_func.desc_funcionario1||'''::varchar AS fun_responsable,
+                            (''(''||td.nombre_corto ||'') - ''|| td.nombre)::varchar AS desc_depto,
+                            CASE WHEN tdw.chequeado = ''si'' THEN ''TIENE FORM 500''::varchar ELSE ''NO TIENE EL FORM 500''::varchar END AS tieneform500,
+                            CASE WHEN tpp.conformidad<>'''' THEN ''TIENE CONFORMIDAD''::varchar ELSE ''NO TIENE CONFORMIDAD''::varchar END AS conformidad,
+                            (ts.fecha_fin-now()::date)::integer AS dias_form_500,
+                            ts.fecha_inicio,
+                            ts.fecha_fin,
+                            '''||pxp.f_get_variable_global('dias_form_500')||'''::varchar AS plazo_dias
+            			  FROM adq.tcotizacion tc
+                            INNER JOIN wf.tdocumento_wf tdw ON tdw.id_proceso_wf = tc.id_proceso_wf
+                            INNER JOIN wf.ttipo_documento ttd ON ttd.id_tipo_documento = tdw.id_tipo_documento
+                            INNER JOIN tes.tobligacion_pago top ON top.num_tramite = tc.num_tramite
+                            INNER JOIN tes.tplan_pago tpp ON tpp.id_obligacion_pago = top.id_obligacion_pago
+                            INNER JOIN adq.tsolicitud ts ON ts.num_tramite = tc.num_tramite
+                            INNER JOIN adq.tproceso_compra tpc ON tpc.num_tramite = tc.num_tramite
+                            INNER JOIN param.tdepto td ON td.id_depto = tpc.id_depto
+                            INNER JOIN orga.vfuncionario vf ON vf.id_funcionario = ts.id_funcionario
+                          WHERE tpc.id_usuario_auxiliar = '||p_id_usuario||' AND tdw.momento= ''exigir'' AND tdw.chequeado = ''no'' AND ttd.codigo = ''FORM500'' AND ts.id_gestion = '||v_id_gestion||' AND tc.estado<>''anulado'' AND tpp.es_ultima_cuota ORDER BY dias_form_500 ASC ';
+
+		raise notice 'v_resp: %',v_resp;
+        --Devuelve la respuesta
+        return v_resp;
+
+      end;
 	else
-					     
+
 		raise exception 'Transaccion inexistente';
-					         
+
 	end if;
-					
+
 EXCEPTION
-					
+
 	WHEN OTHERS THEN
 			v_resp='';
 			v_resp = pxp.f_agrega_clave(v_resp,'mensaje',SQLERRM);

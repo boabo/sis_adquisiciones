@@ -22,6 +22,8 @@ require_once(dirname(__FILE__).'/../reportes/RCertificadoPoaPDF.php');
 //Reportes para generar el qr y el memorandum de designacion CRP
 require_once(dirname(__FILE__).'/../reportes/RMemoDesigCR.php');
 require_once(dirname(__FILE__).'/../reportes/RGenerarQRCR.php');
+require_once(dirname(__FILE__).'/../reportes/RInformeSolicitud.php');
+require_once(dirname(__FILE__).'/../reportes/REspecificacionTec.php');
 
 
 class ACTSolicitud extends ACTbase{    
@@ -419,7 +421,7 @@ class ACTSolicitud extends ACTbase{
     $resultSolicitudDet = $modSolicitudDet->listarSolicitudDet();
     
     //agrupa el detalle de la solcitud por centros de costos y partidas
-    
+
     if($sw_cat["valor"] == 'si'){
     	//si la categoria esta habilita tenemos que agrupar la verificacion presupeustaria por categoria
     	$solicitudDetAgrupado = $this->groupArray($resultSolicitudDet->getDatos(), 'codigo_partida','id_categoria_prog', $datosSolicitud[0]['id_moneda'],$datosSolicitud[0]['estado'],$onlyData);
@@ -428,13 +430,13 @@ class ACTSolicitud extends ACTbase{
 		//de lo contrario agrupamos por centro de costo
 		$solicitudDetAgrupado = $this->groupArray($resultSolicitudDet->getDatos(), 'codigo_partida','desc_centro_costo', $datosSolicitud[0]['id_moneda'],$datosSolicitud[0]['estado'],$onlyData);
     }
-    
+
     $solicitudDetDataSource = new DataSource();
     $solicitudDetDataSource->setDataSet($solicitudDetAgrupado);
-	
 	//inserta el detalle de la colistud como origen de datos
     $dataSource->putParameter('detalleDataSource', $solicitudDetDataSource);
-    
+    $dataSource->putParameter('sw_cat', $sw_cat["valor"]);
+
     if ($onlyData){
     	return $dataSource;
 	} 
@@ -558,7 +560,10 @@ function groupArray($array,$groupkey,$groupkeyTwo,$id_moneda,$estado_sol, $onlyD
                  foreach($value2['groupeddata'] as $value_det){
                        //sumamos el monto a comprometer   
                       $total_pre = $total_pre + $value_det["precio_ga"];
-					  $grup_desc_centro_costo = $grup_desc_centro_costo ."\n". $value_det["desc_centro_costo"];
+					  if(!in_array($value_det["desc_centro_costo"], $cc_array)){
+						  $grup_desc_centro_costo = $grup_desc_centro_costo ."\n". $value_det["desc_centro_costo"];
+						  $cc_array[] = $value_det["desc_centro_costo"];
+					  }
                  }
                  
                  $value_det = $value2['groupeddata'][0];
@@ -716,7 +721,7 @@ function groupArray($array,$groupkey,$groupkeyTwo,$id_moneda,$estado_sol, $onlyD
         $correo->addDestinatario($email);
         $email_cc = $this->objParam->getParametro('email_cc');
         $correo->addCC($email_cc);
-		
+
 		$email_cc = $this->objParam->getParametro('email_cc');
         $correo->setMensaje($email_cc);
 		
@@ -830,6 +835,125 @@ function groupArray($array,$groupkey,$groupkeyTwo,$id_moneda,$estado_sol, $onlyD
 		$this->objFunc=$this->create('MODSolicitud');
 		$this->res=$this->objFunc->validarNroPo($this->objParam);
 		$this->res->imprimirRespuesta($this->res->generarJson());
+	}
+
+	function verificarInformacionSec(){
+		$this->objFunc=$this->create('MODSolicitud');
+		$this->res=$this->objFunc->verificarInformacionSec($this->objParam);
+		$this->res->imprimirRespuesta($this->res->generarJson());
+	}
+
+	function reporteInformeInterPDF(){
+
+		$this->objFunc=$this->create('MODSolicitud');
+		$this->res=$this->objFunc->reporteInformeInterPDF($this->objParam);
+		//Titulo del Reporte Informe Inter.
+		$titulo = 'Informe Sol. Inter.';
+		//Genera el nombre del archivo (aleatorio + titulo)
+		$nombreArchivo=uniqid(md5(session_id()).$titulo).'.pdf';
+
+		$this->objParam->addParametro('orientacion','P');
+		$this->objParam->addParametro('tamano','LETTER');
+		$this->objParam->addParametro('nombre_archivo',$nombreArchivo);
+
+		//$this->objParam->addParametro('nombre_archivo',$nombreArchivo);
+
+		//Instancia la clase de pdf
+		$this->objReporteInforme=new RInformeSolicitud($this->objParam);
+		$this->objReporteInforme->setDatos($this->res->datos);
+		$this->objReporteInforme->generarReporte();
+		$this->objReporteInforme->output($this->objReporteInforme->url_archivo,'F');
+
+
+		$this->mensajeExito=new Mensaje();
+		$this->mensajeExito->setMensaje('EXITO','Reporte.php','Reporte generado',
+			'Se generó con éxito el reporte: '.$nombreArchivo,'control');
+		$this->mensajeExito->setArchivoGenerado($nombreArchivo);
+		$this->mensajeExito->imprimirRespuesta($this->mensajeExito->generarJson());
+	}
+
+	function reporteEspecificacionTecInterPDF(){
+
+		$this->objFunc=$this->create('MODSolicitud');
+		$this->res=$this->objFunc->reporteEspecificacionTecInterPDF($this->objParam);
+		//Titulo del Reporte Especificacion Tec. Inter.
+		$titulo = 'Especificacion Tec. Inter.';
+		//Genera el nombre del archivo (aleatorio + titulo)
+		$nombreArchivo=uniqid(md5(session_id()).$titulo).'.pdf';
+
+		$this->objParam->addParametro('orientacion','P');
+		$this->objParam->addParametro('tamano','LETTER');
+		$this->objParam->addParametro('nombre_archivo',$nombreArchivo);
+
+		//Instancia la clase de pdf
+		$this->objReporteEspecificacion=new REspecificacionTec($this->objParam);
+		$this->objReporteEspecificacion->setDatos($this->res->datos);
+		$this->objReporteEspecificacion->generarReporte();
+		$this->objReporteEspecificacion->output($this->objReporteEspecificacion->url_archivo,'F');
+
+
+		$this->mensajeExito=new Mensaje();
+		$this->mensajeExito->setMensaje('EXITO','Reporte.php','Reporte generado',
+			'Se generó con éxito el reporte: '.$nombreArchivo,'control');
+		$this->mensajeExito->setArchivoGenerado($nombreArchivo);
+		$this->mensajeExito->imprimirRespuesta($this->mensajeExito->generarJson());
+	}
+
+	function listarObservaciones(){
+
+		$this->objParam->defecto('ordenacion','id_obs');
+		$this->objParam->defecto('dir_ordenacion','asc');
+
+		if ($this->objParam->getParametro('estado') != 'todos') {
+			$this->objParam->addFiltro("obs.estado  = ''abierto''");
+		}
+
+		$this->objFunc=$this->create('MODSolicitud');
+		$this->res=$this->objFunc->listarObservaciones($this->objParam);
+		$this->res->imprimirRespuesta($this->res->generarJson());
+	}
+
+	function cerrarSolicitudObs(){
+
+		$this->objFunc=$this->create('MODSolicitud');
+		$this->res=$this->objFunc->cerrarSolicitudObs($this->objParam);
+		$this->res->imprimirRespuesta($this->res->generarJson());
+	}
+	
+	function SolicitarCierreObs(){
+
+		$correo=new CorreoExterno();
+		//destinatario
+		$email = $this->objParam->getParametro('email');
+		$correo->addDestinatario($email);
+		$email_cc = $this->objParam->getParametro('email_cc');
+		$correo->addCC($email_cc);
+
+		$email_cc = $this->objParam->getParametro('email_cc');
+		$correo->setMensaje($email_cc);
+
+		$body = $this->objParam->getParametro('body');
+		$correo->setMensaje($body);
+
+		$asunto = $this->objParam->getParametro('asunto');
+		$correo->setAsunto($asunto);
+
+
+		$correo->setDefaultPlantilla();
+		$resp=$correo->enviarCorreo();
+
+		if($resp=='OK'){
+			$mensajeExito = new Mensaje();
+			$mensajeExito->setMensaje('EXITO','Solicitud.php','Correo enviado',
+				'Se mando el correo con exito: OK','control' );
+			$this->res = $mensajeExito;
+			$this->res->imprimirRespuesta($this->res->generarJson());
+		}
+		else{
+			echo "{\"ROOT\":{\"error\":true,\"detalle\":{\"mensaje\":\" Error al enviar correo\"}}}";
+		}
+
+		exit;
 	}
 
 

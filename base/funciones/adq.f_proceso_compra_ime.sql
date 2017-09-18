@@ -70,7 +70,11 @@ $body$
     v_id_alarma  integer;
     v_resp_doc  boolean;
     v_precontrato varchar;
-
+    --Variables para fecha cotizacion, fecha Inicio Fecha Fin, forma pago
+    v_fecha_cotiz 	date;
+    v_forma_pago  	varchar;
+	  v_fecha_ini		date;
+    v_fecha_venc	date;
   BEGIN
 
     v_nombre_funcion = 'adq.f_proceso_compra_ime';
@@ -96,16 +100,33 @@ $body$
           s.estado,
           s.id_funcionario,
           s.id_proveedor,
-          s.id_moneda
+          s.id_moneda,
+          s.precontrato
         into
           v_id_estado_wf_sol,
           v_id_proceso_wf_sol,
           v_estado_sol,
           v_id_funcionario,
           v_id_proveedor,
-          v_id_moneda
+          v_id_moneda,
+          v_precontrato
         from adq.tsolicitud s
         where s.id_solicitud = v_parametros.id_solicitud;
+
+        -- Campos que se recuperan de solicitud e informacion secundaria
+        SELECT
+          ts.fecha_inicio,
+          ts.fecha_fin,
+          ts.fecha_ini_cot,
+          tis.forma_pago::varchar
+        INTO
+          v_fecha_ini,
+          v_fecha_venc,
+          v_fecha_cotiz,
+          v_forma_pago
+        FROM adq.tsolicitud ts
+        INNER JOIN adq.tinformacion_secundaria tis ON tis.id_solicitud = ts.id_solicitud
+        WHERE ts.id_solicitud = v_parametros.id_solicitud;
 
         --recupera el periodo
 
@@ -325,9 +346,12 @@ $body$
           'nro_contrato',NULL::varchar,
           '_id_usuario_ai',v_parametros._id_usuario_ai::varchar,
           '_nombre_usuario_ai',v_parametros._nombre_usuario_ai::varchar,
-          'precontrato', v_precontrato::varchar
+          'precontrato', v_precontrato::varchar,
+          'v_fecha_ini',v_fecha_ini::varchar,
+          'v_fecha_venc',v_fecha_venc::varchar,
+          'v_fecha_cotiz',v_fecha_cotiz::varchar,
+          'v_forma_pago',v_forma_pago::varchar
           ]);
-
 
           v_resp = adq.f_inserta_cotizacion(p_administrador, p_id_usuario,v_hstore_coti);
 
@@ -823,6 +847,57 @@ $body$
         return v_resp;
 
       end;
+
+      /*********************************
+ 	#TRANSACCION:   'ADQ_ALERT_FORM_4_5'
+ 	#DESCRIPCION:	 Verifica los procesos que tienen form 400 y 500 que estan dentro del plazo de vencimiento.
+ 	#AUTOR:		Franklin Espinoza A.
+ 	#FECHA:		21-08-2017
+	***********************************/
+
+    elsif(p_transaccion='ADQ_ALERT_FORM_4')then
+
+      begin
+		/*SELECT tf.id_funcionario
+        INTO v_record
+        FROM segu.tusuario tu
+        INNER JOIN orga.tfuncionario tf on tf.id_persona = tu.id_persona
+        INNER JOIN orga.vfuncionario vfcl on vfcl.id_funcionario = tf.id_funcionario
+        WHERE tu.id_usuario = p_id_usuario ;*/
+
+        --Definicion de la respuesta
+        v_resp = pxp.f_agrega_clave(v_resp,'mensaje','Control de formularios Exitoso');
+        v_resp = pxp.f_agrega_clave(v_resp,'p_id_usuario',p_id_usuario::varchar);
+
+        --Devuelve la respuesta
+        return v_resp;
+
+      end;
+      /*********************************
+ 	#TRANSACCION:   'ADQ_USUARIO_GET'
+ 	#DESCRIPCION:	 Obtenemos el id_usario y desc_usuario.
+ 	#AUTOR:		Franklin Espinoza A.
+ 	#FECHA:		21-08-2017
+	***********************************/
+
+    elsif(p_transaccion='ADQ_USUARIO_GET')then
+
+      begin
+		SELECT tu.id_usuario, vf.desc_funcionario1
+        INTO v_registros
+        FROM segu.tusuario tu
+        INNER JOIN orga.tfuncionario tf on tf.id_persona = tu.id_persona
+        INNER JOIN orga.vfuncionario vf on vf.id_funcionario = tf.id_funcionario
+        WHERE tu.id_usuario = p_id_usuario ;
+
+        --Definicion de la respuesta
+        v_resp = pxp.f_agrega_clave(v_resp,'mensaje','Datos devueltos Exitosamente');
+        v_resp = pxp.f_agrega_clave(v_resp,'id_usuario',v_registros.id_usuario::varchar);
+         v_resp = pxp.f_agrega_clave(v_resp,'desc_usuario',v_registros.desc_funcionario1::varchar);
+
+        --Devuelve la respuesta
+        return v_resp;
+        end;
     else
 
       raise exception 'Transaccion inexistente: %',p_transaccion;
